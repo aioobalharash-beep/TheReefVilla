@@ -56,6 +56,8 @@ interface PropertyDetails {
   account_name: string;
   iban: string;
   bankPhone: string;
+  /** How the refundable security deposit is collected at checkout. */
+  depositPolicy: 'guest_choice' | 'on_arrival' | 'upfront';
   termsOfStay: BilingualField;
   footerText: BilingualField;
   whatsappNumber: string;
@@ -102,6 +104,7 @@ const DEFAULT_DATA: PropertyDetails = {
   account_name: '',
   iban: '',
   bankPhone: '',
+  depositPolicy: 'guest_choice',
   termsOfStay: { en: '', ar: '' },
   footerText: { en: '', ar: '' },
   whatsappNumber: '',
@@ -126,8 +129,10 @@ const PropertyEditorComponent: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState('');
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [uploadError, setUploadError] = useState('');
   const [newLabel, setNewLabel] = useState('');
   const [newItemInputs, setNewItemInputs] = useState<Record<number, { en: string; ar: string }>>({});
 
@@ -184,6 +189,7 @@ const PropertyEditorComponent: React.FC = () => {
 
   const handleSave = async () => {
     setSaving(true);
+    setSaveError('');
     try {
       // merge: true is critical — other surfaces (SyncSettings, AboutPage,
       // etc.) write fields like icalExportToken / icalImportUrls into the
@@ -194,6 +200,12 @@ const PropertyEditorComponent: React.FC = () => {
       setTimeout(() => setSaved(false), 3000);
     } catch (err) {
       console.error('Failed to save:', err);
+      const msg = err instanceof Error ? err.message : String(err);
+      setSaveError(
+        /permission/i.test(msg)
+          ? t('propertyEditor.savePermissionError')
+          : t('propertyEditor.saveError'),
+      );
     } finally {
       setSaving(false);
     }
@@ -209,11 +221,15 @@ const PropertyEditorComponent: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
+    setUploadError('');
     try {
       const url = await uploadPropertyImage(file);
       setForm(prev => ({ ...prev, gallery: [...prev.gallery, { url, label: newLabel.trim() }] }));
       setNewLabel('');
-    } catch (err) { console.error('Upload error:', err); }
+    } catch (err) {
+      console.error('Upload error:', err);
+      setUploadError(err instanceof Error ? err.message : t('propertyEditor.uploadError'));
+    }
     finally { setUploading(false); }
     e.target.value = '';
   };
@@ -387,6 +403,9 @@ const PropertyEditorComponent: React.FC = () => {
         <div className="flex gap-2">
           <input type="text" dir={dir} value={newLabel} onChange={(e) => setNewLabel(e.target.value)} placeholder={t('propertyEditor.labelForUpload')} className={cn("flex-1 bg-pearl-white border border-primary-navy/10 rounded-xl py-2.5 px-4 text-xs placeholder:text-primary-navy/25 focus:ring-1 focus:ring-secondary-gold/50 outline-none", textAlignClass)} />
         </div>
+        {uploadError && (
+          <p className="text-xs font-bold text-red-600">{uploadError}</p>
+        )}
       </section>
 
       {/* Property Details */}
@@ -485,6 +504,21 @@ const PropertyEditorComponent: React.FC = () => {
               <label className="text-[10px] font-bold uppercase tracking-widest text-secondary-gold">{t('propertyEditor.securityDeposit')}</label>
               <input type="number" dir={dir} value={form.pricing.security_deposit} onChange={(e) => setPricing({ security_deposit: parseInt(e.target.value) || 0 })} className={inputClass} />
               <p className="text-[10px] text-primary-navy/40 font-medium">{t('propertyEditor.securityDepositHint')}</p>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-secondary-gold">{t('propertyEditor.depositPolicy')}</label>
+              <select
+                dir={dir}
+                value={form.depositPolicy}
+                onChange={(e) => setForm(prev => ({ ...prev, depositPolicy: e.target.value as PropertyDetails['depositPolicy'] }))}
+                className={inputClass}
+              >
+                <option value="guest_choice">{t('propertyEditor.depositPolicyGuestChoice')}</option>
+                <option value="on_arrival">{t('propertyEditor.depositPolicyOnArrival')}</option>
+                <option value="upfront">{t('propertyEditor.depositPolicyUpfront')}</option>
+              </select>
+              <p className="text-[10px] text-primary-navy/40 font-medium">{t('propertyEditor.depositPolicyHint')}</p>
             </div>
           </div>
         </div>
@@ -1187,6 +1221,9 @@ const PropertyEditorComponent: React.FC = () => {
       <SyncSettings />
 
       {/* Save */}
+      {saveError && (
+        <p className="text-end text-sm font-bold text-red-600">{saveError}</p>
+      )}
       <div className="flex justify-end gap-3 pt-2">
         <AnimatePresence>
           {saved && (

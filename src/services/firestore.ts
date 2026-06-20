@@ -124,6 +124,8 @@ export const firestoreUsers = {
       phone: fbUser.phoneNumber || '',
     };
 
+    const emailIsAdmin = isAdminEmail(fbUser.email);
+
     let profile: Omit<AppUser, 'id'> = fallback;
     try {
       const profileRef = doc(db, 'users', fbUser.uid);
@@ -132,10 +134,23 @@ export const firestoreUsers = {
         const data = profileSnap.data();
         profile = {
           name: data.name || fallback.name,
+          // The email allowlist is the source of truth for admin status, so a
+          // stale 'client' role on the doc can never lock an owner out.
+          role: emailIsAdmin ? 'admin' : ((data.role as UserRole) || fallback.role),
           email: data.email || fallback.email,
-          role: (data.role as UserRole) || fallback.role,
           phone: data.phone || fallback.phone,
         };
+        // Heal a mismatched role on the doc itself — the Firestore security
+        // rules read THIS field (not the allowlist), so without this the admin
+        // dashboard and Property Editor saves fail with "Missing or
+        // insufficient permissions". Updating one's own doc is rule-permitted.
+        if (emailIsAdmin && data.role !== 'admin') {
+          try {
+            await setDoc(profileRef, { role: 'admin' }, { merge: true });
+          } catch (roleErr) {
+            console.warn('Could not upgrade user role to admin:', roleErr);
+          }
+        }
       } else {
         try {
           await setDoc(profileRef, { ...fallback, created_at: new Date().toISOString() });
@@ -179,6 +194,23 @@ export const firestoreUsers = {
 
   async logout(): Promise<void> {
     await signOut(auth);
+  },
+
+  /**
+   * Ensure an allowlisted admin's Firestore user doc carries role 'admin'.
+   * The security rules read this field (not the email allowlist), so a stale
+   * 'client' doc — or one created before this email became an admin — would
+   * otherwise deny the dashboard and Property Editor. Safe to call on every
+   * auth-state restore: it only writes when a correction is actually needed,
+   * and updating one's own doc is permitted by the rules.
+   */
+  async reconcileAdminRole(uid: string, email: string | null, currentRole?: string): Promise<void> {
+    if (!isAdminEmail(email) || currentRole === 'admin') return;
+    try {
+      await setDoc(doc(db, 'users', uid), { role: 'admin' }, { merge: true });
+    } catch (err) {
+      console.warn('Could not reconcile admin role:', err);
+    }
   },
 
   async getById(id: string): Promise<AppUser | null> {

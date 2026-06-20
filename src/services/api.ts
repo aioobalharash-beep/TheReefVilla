@@ -17,6 +17,8 @@ export const authApi = {
   register: (data: { name: string; email: string; password: string; phone?: string }) => firestoreUsers.register(data),
   logout: () => firestoreUsers.logout(),
   me: (id: string) => firestoreUsers.getById(id),
+  reconcileAdminRole: (uid: string, email: string | null, currentRole?: string) =>
+    firestoreUsers.reconcileAdminRole(uid, email, currentRole),
 };
 
 // Dashboard — Firestore
