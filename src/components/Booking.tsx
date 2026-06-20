@@ -40,6 +40,9 @@ export const Booking: React.FC = () => {
   // Thawani card payment runs alongside bank transfer as a guest-visible option.
   const SHOW_THAWANI = true;
   const [paymentMethod, setPaymentMethod] = useState<'thawani' | 'bank_transfer'>('bank_transfer');
+  // Deposit handling — default is "pay on arrival" (owners' usual preference);
+  // the guest may opt to add the refundable deposit to today's payment.
+  const [payDepositNow, setPayDepositNow] = useState(false);
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [receiptFileName, setReceiptFileName] = useState('');
 
@@ -446,8 +449,11 @@ export const Booking: React.FC = () => {
 
   const stayTotal = priceBreakdown?.total || 0;
   const depositAmount = Number(securityDeposit) || 0;
-  // Deposit is collected with the booking, so it's part of the Grand Total.
+  // Deposit can be collected with the booking or on arrival — guest's choice.
   const grandTotal = stayTotal + depositAmount;
+  // Amount actually charged/transferred now: stay only when the deposit is left
+  // for arrival, otherwise stay + deposit.
+  const payNowTotal = payDepositNow ? grandTotal : stayTotal;
 
   // Resolve Check-in / Check-out wall-clock times from the timing engine.
   // Day use pivots on the selected day; night stay / event pivot on the
@@ -618,6 +624,7 @@ export const Booking: React.FC = () => {
             grandTotal,
             payment_method: 'thawani',
             awaitingPayment: true,
+            deposit_paid: payDepositNow,
             idImageUrl: idImageUrl || undefined,
             stay_type: stayType,
             guestCount,
@@ -646,7 +653,7 @@ export const Booking: React.FC = () => {
           const origin = window.location.origin;
           const { redirectUrl } = await createThawaniCheckout({
             bookingId,
-            amountInOMR: grandTotal,
+            amountInOMR: payNowTotal,
             successUrl: `${origin}/confirmation?booking=${bookingId}`,
             cancelUrl: `${origin}/?canceled=${bookingId}`,
             customer: {
@@ -684,6 +691,7 @@ export const Booking: React.FC = () => {
         depositAmount,
         grandTotal,
         payment_method: paymentMethod,
+        deposit_paid: payDepositNow,
         stay_type: stayType,
         guestCount,
         ...(priceBreakdown && priceBreakdown.discount_amount > 0
@@ -1201,8 +1209,17 @@ export const Booking: React.FC = () => {
             </div>
             {depositAmount > 0 && (
               <div className="flex justify-between items-center text-sm">
-                <span className="text-primary-navy/60 font-medium">{t('booking.securityDeposit')}</span>
-                <span className="font-bold text-primary-navy">{depositAmount} {t('common.omr')}</span>
+                <span className="text-primary-navy/60 font-medium">
+                  {t('booking.securityDeposit')}
+                  {!payDepositNow && (
+                    <span className="ms-1 text-[10px] text-primary-navy/40 normal-case font-normal">
+                      ({t('booking.dueOnArrival')})
+                    </span>
+                  )}
+                </span>
+                <span className={cn("font-bold", payDepositNow ? "text-primary-navy" : "text-primary-navy/40")}>
+                  {depositAmount} {t('common.omr')}
+                </span>
               </div>
             )}
           </div>
@@ -1240,9 +1257,16 @@ export const Booking: React.FC = () => {
           )}
 
           <div className="pt-4 border-t border-primary-navy/5 flex justify-between items-end gap-2">
-            <p className="text-lg sm:text-xl font-bold font-headline">{t('booking.grandTotal')}</p>
+            <p className="text-lg sm:text-xl font-bold font-headline">
+              {payDepositNow || depositAmount === 0 ? t('booking.grandTotal') : t('booking.payNowLabel')}
+            </p>
             <div className="text-end shrink-0">
-              <p className="text-xl sm:text-2xl font-bold text-secondary-gold font-headline">{grandTotal} {t('common.omr')}</p>
+              <p className="text-xl sm:text-2xl font-bold text-secondary-gold font-headline">{payNowTotal} {t('common.omr')}</p>
+              {!payDepositNow && depositAmount > 0 && (
+                <p className="text-[10px] text-primary-navy/40 font-medium mt-1">
+                  {t('booking.depositDueLater', { amount: depositAmount, currency: t('common.omr') })}
+                </p>
+              )}
             </div>
           </div>
         </motion.section>
@@ -1399,6 +1423,54 @@ export const Booking: React.FC = () => {
             </button>
           </div>
 
+          {/* Security Deposit — pay now or on arrival */}
+          {depositAmount > 0 && (
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-secondary-gold">
+                {t('booking.depositPaymentTitle')} · {depositAmount} {t('common.omr')}
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setPayDepositNow(false)}
+                  className={cn(
+                    "relative p-4 rounded-[16px] border-2 transition-all text-start space-y-1",
+                    !payDepositNow
+                      ? "border-primary-navy bg-primary-navy/5"
+                      : "border-primary-navy/10 bg-white hover:border-primary-navy/20"
+                  )}
+                >
+                  {!payDepositNow && (
+                    <div className="absolute top-3 end-3 w-5 h-5 bg-primary-navy rounded-full flex items-center justify-center">
+                      <Check size={12} className="text-white" />
+                    </div>
+                  )}
+                  <p className="text-xs font-bold text-primary-navy">{t('booking.depositOnArrivalOption')}</p>
+                  <p className="text-[10px] text-primary-navy/50 font-medium">{t('booking.depositOnArrivalHint')}</p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPayDepositNow(true)}
+                  className={cn(
+                    "relative p-4 rounded-[16px] border-2 transition-all text-start space-y-1",
+                    payDepositNow
+                      ? "border-primary-navy bg-primary-navy/5"
+                      : "border-primary-navy/10 bg-white hover:border-primary-navy/20"
+                  )}
+                >
+                  {payDepositNow && (
+                    <div className="absolute top-3 end-3 w-5 h-5 bg-primary-navy rounded-full flex items-center justify-center">
+                      <Check size={12} className="text-white" />
+                    </div>
+                  )}
+                  <p className="text-xs font-bold text-primary-navy">{t('booking.depositNowOption')}</p>
+                  <p className="text-[10px] text-primary-navy/50 font-medium">{t('booking.depositNowHint')}</p>
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Bank Transfer Details & Receipt Upload */}
           {paymentMethod === 'bank_transfer' && (
             <motion.div
@@ -1546,7 +1618,7 @@ export const Booking: React.FC = () => {
           ) : (
             <>
               {t('booking.payWithThawani')}
-              <span className="text-[10px] opacity-40 lowercase font-normal">({grandTotal} {t('common.omr')})</span>
+              <span className="text-[10px] opacity-40 lowercase font-normal">({payNowTotal} {t('common.omr')})</span>
             </>
           )}
         </button>

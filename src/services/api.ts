@@ -42,6 +42,8 @@ export const bookingsApi = {
     payment_method: 'thawani' | 'bank_transfer' | 'walk_in';
     /** True for online card bookings created before Thawani confirms payment. */
     awaitingPayment?: boolean;
+    /** False when the guest opts to pay the security deposit on arrival. */
+    deposit_paid?: boolean;
     receipt_image?: string;
     receiptURL?: string;
     idImageUrl?: string;

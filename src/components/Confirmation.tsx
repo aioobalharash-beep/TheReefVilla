@@ -8,6 +8,7 @@ import { db } from '../services/firebase';
 import { useTranslation } from 'react-i18next';
 import { getClientConfig } from '../config/clientConfig';
 import { formatTime } from '../services/pricingUtils';
+import { cn } from '@/src/lib/utils';
 
 export const Confirmation: React.FC = () => {
   const navigate = useNavigate();
@@ -81,6 +82,8 @@ export const Confirmation: React.FC = () => {
   const deposit = Number(booking.depositAmount) || Number(booking.security_deposit) || 0;
   const stayTotal = Number(booking.stayTotal) || (Number(booking.grandTotal || booking.total_amount) - deposit);
   const grandTotal = Number(booking.grandTotal) || Number(booking.total_amount) || (stayTotal + deposit);
+  // Whether the deposit was collected with this payment or is due on arrival.
+  const depositPaidUpfront = booking.deposit_paid !== false;
 
   const isDayUse = booking.check_in === booking.check_out;
   const lang = i18n.language;
@@ -106,7 +109,9 @@ export const Confirmation: React.FC = () => {
 
   const handleViewInvoice = async () => {
     try {
-      const depositLabel = lang === 'ar' ? 'مبلغ التأمين المسترد' : 'Refundable Security Deposit';
+      const depositLabel = depositPaidUpfront
+        ? (lang === 'ar' ? 'مبلغ التأمين المسترد' : 'Refundable Security Deposit')
+        : (lang === 'ar' ? 'مبلغ التأمين يدفع عند الدخول' : 'Security Deposit – Payable on Entry');
       const config = getClientConfig();
       const pdfDoc = await generateInvoicePDF({
         id: booking.id,
@@ -210,9 +215,11 @@ export const Confirmation: React.FC = () => {
               <div className="flex justify-between items-start text-xs">
                 <div>
                   <span className="text-primary-navy/50">{t('confirmation.securityDeposit')}</span>
-                  <p className="text-[9px] font-bold uppercase tracking-widest text-primary-navy/40 mt-0.5">{t('booking.dueOnArrival')}</p>
+                  {!depositPaidUpfront && (
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-primary-navy/40 mt-0.5">{t('booking.dueOnArrival')}</p>
+                  )}
                 </div>
-                <span className="font-bold text-primary-navy/40">{deposit} {t('common.omr')}</span>
+                <span className={cn("font-bold", depositPaidUpfront ? "text-primary-navy" : "text-primary-navy/40")}>{deposit} {t('common.omr')}</span>
               </div>
             )}
             <div className="flex justify-between text-sm pt-2 border-t border-primary-navy/5">

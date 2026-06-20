@@ -339,11 +339,14 @@ export const firestoreBookings = {
     // Walk-in grandTotal: amount_paid for the stay, plus deposit only when it
     // was actually collected. Online flows keep using their explicit grandTotal.
     const walkInStayPaid = isFreeWalkIn ? 0 : Number(data.amount_paid) || 0;
+    // Online flows now honour the guest's deposit choice too: when the deposit
+    // is paid on arrival the booking total is the stay only, with the deposit
+    // tracked separately as the balance due.
     const grandTotal = isWalkIn
       ? walkInStayPaid + (depositPaid ? depositAmount : 0)
-      : (Number(data.grandTotal) || (stayTotal + depositAmount));
+      : (depositPaid ? stayTotal + depositAmount : stayTotal);
     // Amount still owed on arrival — drives the "Deposit Due on Arrival" notice.
-    const balanceDue = isWalkIn && !depositPaid ? depositAmount : 0;
+    const balanceDue = !depositPaid ? depositAmount : 0;
 
     // payment_status: free → 'free', paid walk-in → 'paid', bank_transfer → 'pending',
     // thawani → 'paid'. Walk-in falls back to 'pending' if no mode set.
@@ -371,7 +374,7 @@ export const firestoreBookings = {
       depositAmount,
       grandTotal,
       balance_due: balanceDue,
-      deposit_paid: isWalkIn ? depositPaid : true,
+      deposit_paid: depositPaid,
       ...(isManual ? { isManual: true } : {}),
       status: (isBankTransfer || awaitingPayment) ? 'pending' : 'confirmed',
       payment_status: paymentStatus,
