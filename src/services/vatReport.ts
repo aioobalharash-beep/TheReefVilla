@@ -13,7 +13,7 @@ interface VATReportData {
   bookings: { guest_name: string; check_in: string; nights: number; amount: number }[];
 }
 
-// Navy: rgb(1, 31, 54)  |  Gold: rgb(212, 175, 55)
+// Brand: rgb(74, 58, 38)  |  Gold: rgb(184, 160, 96)
 
 export function generateVATReportPDF(data: VATReportData) {
   const doc = new jsPDF({ format: 'a4' });
@@ -27,7 +27,7 @@ export function generateVATReportPDF(data: VATReportData) {
   // Business name — serif
   doc.setFont('times', 'bold');
   doc.setFontSize(22);
-  doc.setTextColor(1, 31, 54);
+  doc.setTextColor(74, 58, 38);
   doc.text(data.chaletName || 'Luxury Stay', ml, y);
 
   // Tax ID + location — sans-serif
@@ -36,7 +36,7 @@ export function generateVATReportPDF(data: VATReportData) {
   doc.setFontSize(9);
   doc.setTextColor(80);
   doc.text(`Tax ID: ${data.taxId}`, ml, y);
-  doc.text('Muscat, Sultanate of Oman', mr, y, { align: 'right' });
+  doc.text('Nizwa Ibri street, Bahla', mr, y, { align: 'right' });
 
   if (data.licenseNumber) {
     y += 5;
@@ -50,7 +50,7 @@ export function generateVATReportPDF(data: VATReportData) {
 
   // Thin navy rule
   y += 6;
-  doc.setDrawColor(1, 31, 54);
+  doc.setDrawColor(74, 58, 38);
   doc.setLineWidth(0.3);
   doc.line(ml, y, mr, y);
 
@@ -58,7 +58,7 @@ export function generateVATReportPDF(data: VATReportData) {
   y += 14;
   doc.setFont('times', 'bold');
   doc.setFontSize(16);
-  doc.setTextColor(1, 31, 54);
+  doc.setTextColor(74, 58, 38);
   doc.text(`Monthly VAT Summary — ${data.month}`, ml, y);
 
   y += 7;
@@ -78,14 +78,14 @@ export function generateVATReportPDF(data: VATReportData) {
   // Table header
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8);
-  doc.setTextColor(1, 31, 54);
+  doc.setTextColor(74, 58, 38);
   doc.text('GUEST NAME', col1, y);
   doc.text('CHECK-IN', col2, y);
   doc.text('NIGHTS', col3, y);
   doc.text('AMOUNT (OMR)', col4, y, { align: 'right' });
 
   y += 3;
-  doc.setDrawColor(1, 31, 54);
+  doc.setDrawColor(74, 58, 38);
   doc.setLineWidth(0.3);
   doc.line(ml, y, mr, y);
   y += 7;
@@ -117,7 +117,7 @@ export function generateVATReportPDF(data: VATReportData) {
         doc.line(ml, y - 5, mr, y - 5);
       }
 
-      doc.setTextColor(1, 31, 54);
+      doc.setTextColor(74, 58, 38);
       doc.setFont('helvetica', 'normal');
       doc.text(b.guest_name, col1, y);
       doc.text(
@@ -133,7 +133,7 @@ export function generateVATReportPDF(data: VATReportData) {
 
   // Bottom table rule
   y += 2;
-  doc.setDrawColor(1, 31, 54);
+  doc.setDrawColor(74, 58, 38);
   doc.setLineWidth(0.3);
   doc.line(ml, y, mr, y);
 
@@ -148,7 +148,7 @@ export function generateVATReportPDF(data: VATReportData) {
   doc.setTextColor(80);
   doc.text('Revenue', boxX, y);
   doc.setFont('helvetica', 'bold');
-  doc.setTextColor(1, 31, 54);
+  doc.setTextColor(74, 58, 38);
   doc.text(`OMR ${data.totalRevenue.toFixed(2)}`, mr, y, { align: 'right' });
 
   y += 8;
@@ -156,12 +156,12 @@ export function generateVATReportPDF(data: VATReportData) {
   doc.setTextColor(80);
   doc.text('VAT Rate', boxX, y);
   doc.setFont('helvetica', 'bold');
-  doc.setTextColor(1, 31, 54);
+  doc.setTextColor(74, 58, 38);
   doc.text(`${data.vatRate}%`, mr, y, { align: 'right' });
 
   // Thin separator
   y += 5;
-  doc.setDrawColor(1, 31, 54);
+  doc.setDrawColor(74, 58, 38);
   doc.setLineWidth(0.2);
   doc.line(boxX, y, mr, y);
 
@@ -172,13 +172,13 @@ export function generateVATReportPDF(data: VATReportData) {
   doc.setTextColor(80);
   doc.text('Total VAT Collected', boxX, y);
   doc.setFontSize(12);
-  doc.setTextColor(212, 175, 55);
+  doc.setTextColor(184, 160, 96);
   doc.text(`OMR ${data.vatCollected.toFixed(2)}`, mr, y, { align: 'right' });
 
   // ── FOOTER ──────────────────────────────────────────────
   drawFooter(doc, pw, ph);
 
-  doc.save(`Al-Malak-Chalet-VAT-Report-${data.month.replace(/\s/g, '-')}.pdf`);
+  doc.save(`Reef-Villa-VAT-Report-${data.month.replace(/\s/g, '-')}.pdf`);
 }
 
 function drawFooter(doc: jsPDF, pw: number, ph: number) {
@@ -192,7 +192,7 @@ function drawFooter(doc: jsPDF, pw: number, ph: number) {
   doc.setFontSize(7);
   doc.setTextColor(160);
   doc.text(
-    'Al Haitham Rest House: This is a computer-generated VAT summary report.',
+    'Reef Villa: This is a computer-generated VAT summary report.',
     pw / 2, footerY, { align: 'center' }
   );
 }

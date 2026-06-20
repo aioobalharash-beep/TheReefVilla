@@ -102,8 +102,8 @@ export const PrintableInvoice: React.FC<PrintableInvoiceProps> = ({
   const isAr = lang === 'ar';
   const dir = isAr ? 'rtl' : 'ltr';
   const refId = invoice.id.slice(0, 8).toUpperCase();
-  const property = isAr ? 'استراحة الهيثم' : invoice.room_type;
-  const company = (chaletName || (isAr ? 'استراحة الهيثم' : 'Al Haitham Rest House')).toUpperCase();
+  const property = isAr ? 'ريف فيلا' : invoice.room_type;
+  const company = (chaletName || (isAr ? 'ريف فيلا' : 'Reef Villa')).toUpperCase();
 
   const dateLocale = isAr ? 'ar-OM' : 'en-GB';
   const fmtDate = (d: string | undefined) =>
@@ -143,19 +143,19 @@ export const PrintableInvoice: React.FC<PrintableInvoiceProps> = ({
     amount: isAr ? 'المبلغ' : 'AMOUNT',
     grandTotal: isAr ? 'الإجمالي العام' : 'GRAND TOTAL',
     currency: isAr ? 'ر.ع.' : 'OMR',
-    location: isAr ? 'مسقط، سلطنة عُمان' : 'Muscat, Sultanate of Oman',
+    location: isAr ? 'طريق نزوى عبري، بهلا' : 'Nizwa Ibri street, Bahla',
     license: isAr ? 'رقم الترخيص' : 'License No.',
     depositDue: isAr ? 'مبلغ التأمين مستحق عند الوصول' : 'Deposit Due on Arrival',
     depositDueMsg: isAr
       ? 'يُحصَّل الرصيد المتبقي عند تسجيل الدخول.'
       : 'Remaining balance to be collected at check-in.',
     footer: isAr
-      ? 'شكراً لاختياركم استراحة الهيثم  •  فاتورة صادرة آلياً ولا تتطلب توقيعاً'
-      : 'Thank you for choosing Al Haitham Rest House  •  This is a computer-generated invoice.',
+      ? 'شكراً لاختياركم ريف فيلا  •  فاتورة صادرة آلياً ولا تتطلب توقيعاً'
+      : 'Thank you for choosing Reef Villa  •  This is a computer-generated invoice.',
     termsTitle: isAr ? 'شروط الإقامة' : 'Terms of Stay',
     termsIntro: isAr
-      ? 'يُرجى مراجعة الشروط التالية المتعلقة بإقامتكم في استراحة الهيثم.'
-      : 'Please review the following terms regarding your stay at Al Haitham Rest House.',
+      ? 'يُرجى مراجعة الشروط التالية المتعلقة بإقامتكم في ريف فيلا.'
+      : 'Please review the following terms regarding your stay at Reef Villa.',
     locationAr: 'الموقع',
     locationEn: 'Location',
   };

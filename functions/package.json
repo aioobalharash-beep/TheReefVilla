@@ -1,6 +1,6 @@
 {
   "name": "al-haitham-functions",
-  "description": "Cloud Functions for Al Haitham Rest House — push notifications on new bookings.",
+  "description": "Cloud Functions for Reef Villa — push notifications on new bookings.",
   "private": true,
   "engines": {
     "node": "20"

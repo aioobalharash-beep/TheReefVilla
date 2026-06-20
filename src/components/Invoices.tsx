@@ -58,7 +58,7 @@ export const Invoices: React.FC = () => {
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [selectedBooking, setSelectedBooking] = useState<RealtimeBooking | null>(null);
   const [whatsappTemplate, setWhatsappTemplate] = useState<string>(
-    `Assalamu Alaikum {{guest_name}},\n\nHere is your invoice for your stay at Al Haitham Rest House:\n\nBooking Ref: {{booking_id}}\nStay: {{stay_amount}} OMR\n{{deposit_line}}\nTotal: {{total_amount}} OMR\n{{receipt_line}}\n\nThank you for choosing Al Haitham Rest House.`
+    `Assalamu Alaikum {{guest_name}},\n\nHere is your invoice for your stay at Reef Villa:\n\nBooking Ref: {{booking_id}}\nStay: {{stay_amount}} OMR\n{{deposit_line}}\nTotal: {{total_amount}} OMR\n{{receipt_line}}\n\nThank you for choosing Reef Villa.`
   );
   const [licenseNumber, setLicenseNumber] = useState('');
   const [termsEn, setTermsEn] = useState('');
@@ -114,7 +114,7 @@ export const Invoices: React.FC = () => {
   const bookingToInvoice = (b: RealtimeBooking): Invoice => {
     const lang = i18n.language;
     const isAr = lang === 'ar';
-    const propName = isAr ? 'استراحة الهيثم' : config.chaletName;
+    const propName = isAr ? 'ريف فيلا' : config.chaletName;
     const deposit = Number(b.depositAmount) || Number(b.security_deposit) || 0;
     const stayTotal = Number(b.stayTotal) || (Number(b.grandTotal || b.total_amount) - deposit);
     const total = Number(b.grandTotal) || Number(b.total_amount) || (stayTotal + deposit);
@@ -357,7 +357,7 @@ export const Invoices: React.FC = () => {
                           Deposit Due on Arrival
                         </span>
                       )}
-                      <span className="text-[10px] text-primary-navy/40 font-medium md:hidden">{i18n.language === 'ar' ? 'استراحة الهيثم' : config.chaletName}</span>
+                      <span className="text-[10px] text-primary-navy/40 font-medium md:hidden">{i18n.language === 'ar' ? 'ريف فيلا' : config.chaletName}</span>
                     </div>
                   </div>
 
@@ -550,7 +550,7 @@ export const Invoices: React.FC = () => {
                 <div className="flex justify-between items-start">
                   <div className="space-y-1">
                     <BrandMark variant="light" size="sm" className="uppercase tracking-tight" />
-                    <p className="text-xs text-primary-navy/50 font-medium">Muscat, Sultanate of Oman</p>
+                    <p className="text-xs text-primary-navy/50 font-medium">Nizwa Ibri street, Bahla</p>
                   </div>
                 </div>
 

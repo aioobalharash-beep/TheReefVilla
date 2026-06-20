@@ -13,7 +13,7 @@ interface PerformanceReportData {
   bookings: { guest_name: string; check_in: string; check_out: string; nights: number; amount: number }[];
 }
 
-// Navy: rgb(1, 31, 54)  |  Gold: rgb(212, 175, 55)
+// Brand: rgb(74, 58, 38)  |  Gold: rgb(184, 160, 96)
 
 const fmtDate = (d: string) =>
   new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -29,14 +29,14 @@ export function generatePerformanceReportPDF(data: PerformanceReportData) {
   // ── HEADER ──────────────────────────────────────────────
   doc.setFont('times', 'bold');
   doc.setFontSize(22);
-  doc.setTextColor(1, 31, 54);
+  doc.setTextColor(74, 58, 38);
   doc.text(data.chaletName || 'Luxury Stay', ml, y);
 
   y += 8;
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   doc.setTextColor(80);
-  doc.text('Muscat, Sultanate of Oman', mr, y, { align: 'right' });
+  doc.text('Nizwa Ibri street, Bahla', mr, y, { align: 'right' });
   if (data.licenseNumber) {
     doc.text(`Tourism License: ${data.licenseNumber}`, ml, y);
   }
@@ -48,7 +48,7 @@ export function generatePerformanceReportPDF(data: PerformanceReportData) {
 
   // Thin navy rule
   y += 6;
-  doc.setDrawColor(1, 31, 54);
+  doc.setDrawColor(74, 58, 38);
   doc.setLineWidth(0.3);
   doc.line(ml, y, mr, y);
 
@@ -56,7 +56,7 @@ export function generatePerformanceReportPDF(data: PerformanceReportData) {
   y += 14;
   doc.setFont('times', 'bold');
   doc.setFontSize(16);
-  doc.setTextColor(1, 31, 54);
+  doc.setTextColor(74, 58, 38);
   doc.text('Performance Report', ml, y);
 
   y += 7;
@@ -76,14 +76,14 @@ export function generatePerformanceReportPDF(data: PerformanceReportData) {
   // Table header
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8);
-  doc.setTextColor(1, 31, 54);
+  doc.setTextColor(74, 58, 38);
   doc.text('GUEST NAME', col1, y);
   doc.text('DATES', col2, y);
   doc.text('NIGHTS', col3, y);
   doc.text('AMOUNT (OMR)', col4, y, { align: 'right' });
 
   y += 3;
-  doc.setDrawColor(1, 31, 54);
+  doc.setDrawColor(74, 58, 38);
   doc.setLineWidth(0.3);
   doc.line(ml, y, mr, y);
   y += 7;
@@ -115,13 +115,13 @@ export function generatePerformanceReportPDF(data: PerformanceReportData) {
 
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(9);
-      doc.setTextColor(1, 31, 54);
+      doc.setTextColor(74, 58, 38);
       doc.text(b.guest_name, col1, y);
 
       doc.setTextColor(80);
       doc.text(`${fmtDate(b.check_in)} — ${fmtDate(b.check_out)}`, col2, y);
 
-      doc.setTextColor(1, 31, 54);
+      doc.setTextColor(74, 58, 38);
       doc.text(String(b.nights), col3 + 6, y, { align: 'center' });
 
       doc.setFont('helvetica', 'bold');
@@ -133,7 +133,7 @@ export function generatePerformanceReportPDF(data: PerformanceReportData) {
 
   // Bottom table rule
   y += 2;
-  doc.setDrawColor(1, 31, 54);
+  doc.setDrawColor(74, 58, 38);
   doc.setLineWidth(0.3);
   doc.line(ml, y, mr, y);
 
@@ -143,11 +143,11 @@ export function generatePerformanceReportPDF(data: PerformanceReportData) {
   // Section title
   doc.setFont('times', 'bold');
   doc.setFontSize(13);
-  doc.setTextColor(1, 31, 54);
+  doc.setTextColor(74, 58, 38);
   doc.text('Executive Summary', ml, y);
 
   y += 4;
-  doc.setDrawColor(1, 31, 54);
+  doc.setDrawColor(74, 58, 38);
   doc.setLineWidth(0.2);
   doc.line(ml, y, ml + 40, y);
 
@@ -161,7 +161,7 @@ export function generatePerformanceReportPDF(data: PerformanceReportData) {
   doc.setTextColor(80);
   doc.text('Total Revenue', labelX, y);
   doc.setFont('helvetica', 'bold');
-  doc.setTextColor(212, 175, 55);
+  doc.setTextColor(184, 160, 96);
   doc.text(`OMR ${data.totalRevenue.toFixed(2)}`, valueX, y);
 
   y += 8;
@@ -169,7 +169,7 @@ export function generatePerformanceReportPDF(data: PerformanceReportData) {
   doc.setTextColor(80);
   doc.text('Total Bookings', labelX, y);
   doc.setFont('helvetica', 'bold');
-  doc.setTextColor(1, 31, 54);
+  doc.setTextColor(74, 58, 38);
   doc.text(String(data.totalBookings), valueX, y);
 
   y += 8;
@@ -177,7 +177,7 @@ export function generatePerformanceReportPDF(data: PerformanceReportData) {
   doc.setTextColor(80);
   doc.text('Total Nights', labelX, y);
   doc.setFont('helvetica', 'bold');
-  doc.setTextColor(1, 31, 54);
+  doc.setTextColor(74, 58, 38);
   doc.text(String(data.totalNights), valueX, y);
 
   y += 8;
@@ -185,7 +185,7 @@ export function generatePerformanceReportPDF(data: PerformanceReportData) {
   doc.setTextColor(80);
   doc.text('Average Stay', labelX, y);
   doc.setFont('helvetica', 'bold');
-  doc.setTextColor(1, 31, 54);
+  doc.setTextColor(74, 58, 38);
   doc.text(`${data.avgStay} nights`, valueX, y);
 
   // Revenue per booking
@@ -196,7 +196,7 @@ export function generatePerformanceReportPDF(data: PerformanceReportData) {
     doc.setTextColor(80);
     doc.text('Revenue / Booking', labelX, y);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(212, 175, 55);
+    doc.setTextColor(184, 160, 96);
     doc.text(`OMR ${revPerBooking}`, valueX, y);
   }
 
@@ -204,7 +204,7 @@ export function generatePerformanceReportPDF(data: PerformanceReportData) {
   drawFooter(doc, pw, ph);
 
   const rangeLabel = `${data.startDate}_${data.endDate}`;
-  doc.save(`Al-Malak-Chalet-Performance-Report-${rangeLabel}.pdf`);
+  doc.save(`Reef-Villa-Performance-Report-${rangeLabel}.pdf`);
 }
 
 function drawFooter(doc: jsPDF, pw: number, ph: number) {
@@ -216,7 +216,7 @@ function drawFooter(doc: jsPDF, pw: number, ph: number) {
   doc.setFontSize(7);
   doc.setTextColor(160);
   doc.text(
-    'Al Haitham Rest House: This is a computer-generated performance report.',
+    'Reef Villa: This is a computer-generated performance report.',
     pw / 2, footerY, { align: 'center' }
   );
 }
