@@ -269,6 +269,7 @@ export interface FirestoreBooking {
   discount_kind?: 'percent' | 'flat' | 'last_night_half';
   slot_id?: string;
   slot_name?: string;
+  slot_name_ar?: string;
   slot_start_time?: string;
   slot_end_time?: string;
   check_in_time?: string;
@@ -293,6 +294,8 @@ export const firestoreBookings = {
     depositAmount?: number;
     grandTotal?: number;
     payment_method: 'thawani' | 'bank_transfer' | 'walk_in';
+    /** True for online card bookings created before Thawani confirms payment. */
+    awaitingPayment?: boolean;
     payment_mode?: 'paid' | 'free';
     amount_paid?: number;
     deposit_paid?: boolean;
@@ -306,6 +309,7 @@ export const firestoreBookings = {
     discount_kind?: 'percent' | 'flat' | 'last_night_half';
     slot_id?: string;
     slot_name?: string;
+    slot_name_ar?: string;
     slot_start_time?: string;
     slot_end_time?: string;
     check_in_time?: string;
@@ -322,6 +326,9 @@ export const firestoreBookings = {
     const depositAmount = Number(data.depositAmount) || Number(data.security_deposit) || 0;
     const isWalkIn = data.payment_method === 'walk_in';
     const isBankTransfer = data.payment_method === 'bank_transfer';
+    // Online card booking written *before* payment clears. Stays pending until
+    // /api/thawani/webhook verifies the session and flips it to confirmed/paid.
+    const awaitingPayment = data.awaitingPayment === true;
     const isFreeWalkIn = isWalkIn && data.payment_mode === 'free';
     const isManual = data.isManual === true;
     // Online flows always assume the security deposit has cleared alongside the
@@ -345,6 +352,7 @@ export const firestoreBookings = {
     else if (isWalkIn && data.payment_mode === 'paid') paymentStatus = 'paid';
     else if (isBankTransfer) paymentStatus = 'pending';
     else if (isWalkIn) paymentStatus = 'pending';
+    else if (awaitingPayment) paymentStatus = 'pending';
     else paymentStatus = 'paid';
 
     const booking: Omit<FirestoreBooking, 'id'> = {
@@ -365,7 +373,7 @@ export const firestoreBookings = {
       balance_due: balanceDue,
       deposit_paid: isWalkIn ? depositPaid : true,
       ...(isManual ? { isManual: true } : {}),
-      status: isBankTransfer ? 'pending' : 'confirmed',
+      status: (isBankTransfer || awaitingPayment) ? 'pending' : 'confirmed',
       payment_status: paymentStatus,
       payment_method: data.payment_method,
       receipt_image: data.receipt_image || '',
@@ -382,6 +390,7 @@ export const firestoreBookings = {
       ...(data.slot_id ? {
         slot_id: data.slot_id,
         slot_name: data.slot_name || '',
+        slot_name_ar: data.slot_name_ar || '',
         slot_start_time: data.slot_start_time || '',
         slot_end_time: data.slot_end_time || '',
       } : {}),
@@ -424,8 +433,8 @@ export const firestoreBookings = {
 
     // Create notification for admin
     await addDoc(notificationsCol(), {
-      type: isBankTransfer ? 'pending_payment' : 'new_booking',
-      title: isBankTransfer ? 'Bank Transfer Pending' : 'New Booking',
+      type: (isBankTransfer || awaitingPayment) ? 'pending_payment' : 'new_booking',
+      title: isBankTransfer ? 'Bank Transfer Pending' : awaitingPayment ? 'Awaiting Card Payment' : 'New Booking',
       message: `${data.guest_name} booked ${data.property_name} (${nights > 0 ? `${nights} nights` : 'Day Use'})`,
       booking_id: docRef.id,
       read: false,

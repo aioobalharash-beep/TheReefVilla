@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { CheckCircle2, MapPin, FileText } from 'lucide-react';
 import { generateInvoicePDF } from '../services/pdf';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { useTranslation } from 'react-i18next';
 import { getClientConfig } from '../config/clientConfig';
@@ -14,19 +14,42 @@ export const Confirmation: React.FC = () => {
   const location = useLocation();
   const { t, i18n } = useTranslation();
   const state = location.state as { booking?: any; propertyName?: string } | null;
+  const bookingIdParam = new URLSearchParams(location.search).get('booking');
 
-  const booking = state?.booking;
-  const propertyName = state?.propertyName || 'Reef Villa';
+  // Bookings normally arrive via router state. Returning from Thawani's hosted
+  // page there is no state — only ?booking=<id> — so we subscribe to the doc
+  // directly. The live subscription also lets the page reflect the moment the
+  // Thawani webhook flips the booking from pending → confirmed/paid.
+  const [booking, setBooking] = useState<any>(state?.booking ?? null);
+  const [loadingBooking, setLoadingBooking] = useState(!state?.booking && !!bookingIdParam);
 
   const [bankPhone, setBankPhone] = useState('');
   const [licenseNumber, setLicenseNumber] = useState('');
 
-  // Auto-redirect if no valid booking
   useEffect(() => {
-    if (!booking) {
+    if (state?.booking || !bookingIdParam) return;
+    const unsub = onSnapshot(
+      doc(db, 'bookings', bookingIdParam),
+      snap => {
+        setBooking(snap.exists() ? { id: snap.id, ...snap.data() } : null);
+        setLoadingBooking(false);
+      },
+      err => {
+        console.error('[Confirmation] booking subscription failed:', err);
+        setLoadingBooking(false);
+      },
+    );
+    return unsub;
+  }, [state?.booking, bookingIdParam]);
+
+  const propertyName = state?.propertyName || booking?.property_name || 'Reef Villa';
+
+  // Auto-redirect only when there is genuinely nothing to show.
+  useEffect(() => {
+    if (!booking && !loadingBooking && !bookingIdParam) {
       navigate('/', { replace: true });
     }
-  }, [booking, navigate]);
+  }, [booking, loadingBooking, bookingIdParam, navigate]);
 
   // Load property details from Firestore (bankPhone for bank transfers, licenseNumber for PDFs)
   useEffect(() => {
@@ -41,6 +64,15 @@ export const Confirmation: React.FC = () => {
       .catch(console.error);
   }, [booking]);
 
+  if (loadingBooking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-6">
+        <p className="text-primary-navy/50 font-bold uppercase tracking-widest text-xs">
+          {t('common.loading')}
+        </p>
+      </div>
+    );
+  }
   if (!booking) return null;
 
   const isThawani = booking.payment_method === 'thawani';

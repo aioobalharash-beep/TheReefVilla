@@ -153,6 +153,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       paid_at: new Date().toISOString(),
     });
 
+    // Mirror the bank-transfer approval path: record the payment so it shows up
+    // in revenue/VAT reports. Keyed by session id so retries stay idempotent.
+    const db = getDb();
+    const txnId = `thawani_${sessionId}`;
+    await db.collection('transactions').doc(txnId).set({
+      type: 'payment',
+      description: `Thawani Payment - ${snap.get('property_name') || ''}`,
+      amount: snap.get('total_amount') || 0,
+      booking_id: bookingId,
+      date: new Date().toISOString().split('T')[0],
+      created_at: new Date().toISOString(),
+    });
+
     console.log('[thawani/webhook] booking confirmed', { bookingId, sessionId });
     res.status(200).json({ received: true, bookingId });
   } catch (err) {

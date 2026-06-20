@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight, ShieldCheck, AlertCircle, ArrowLeft, Upload,
 import { maxGuestsFor, clampGuestCount } from '../config/occupancy';
 import { cn } from '@/src/lib/utils';
 import { propertiesApi, bookingsApi } from '../services/api';
+import { createThawaniCheckout } from '../services/thawani';
 import { downloadTermsPDF } from '../services/pdf';
 import { uploadToCloudinary } from '../services/cloudinary';
 import { sendWhatsAppInvoice } from './Invoices';
@@ -36,8 +37,8 @@ export const Booking: React.FC = () => {
   // Capacity caps depend on stayType — overnight beds vs day-use gathering.
   // Re-clamped via a useEffect below when stayType changes.
   const [guestCount, setGuestCount] = useState<number>(2);
-  // Thawani temporarily hidden from the public UI; bank transfer is the only guest-visible option.
-  const SHOW_THAWANI = false;
+  // Thawani card payment runs alongside bank transfer as a guest-visible option.
+  const SHOW_THAWANI = true;
   const [paymentMethod, setPaymentMethod] = useState<'thawani' | 'bank_transfer'>('bank_transfer');
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [receiptFileName, setReceiptFileName] = useState('');
@@ -594,24 +595,19 @@ export const Booking: React.FC = () => {
         }
       }
 
-      // Thawani — simulate payment gateway for prototype demo
+      // Thawani — create a pending booking, then redirect to Thawani's hosted
+      // checkout. /api/thawani/webhook verifies the session server-side and
+      // flips the booking to confirmed/paid once payment actually clears.
       if (paymentMethod === 'thawani') {
         setThawaniSimulating(true);
-
-        // Simulate 2-second network delay (Thawani redirect)
-        await new Promise(resolve => setTimeout(resolve, 2000));
-
-        let thawaniBooking: any = null;
-        let thawaniPropertyName = property.name;
-
+        const termsTimestamp = new Date().toISOString();
+        const guestPhoneIntl = `+968${guestPhone.replace(/\s/g, '')}`;
         try {
-          // Save booking to Firestore as paid
-          const termsTimestamp = new Date().toISOString();
           const result = await bookingsApi.create({
             property_id: property.id,
             property_name: property.name,
             guest_name: guestName.trim(),
-            guest_phone: `+968${guestPhone.replace(/\s/g, '')}`,
+            guest_phone: guestPhoneIntl,
             guest_email: guestEmail || undefined,
             check_in: checkIn,
             check_out: checkOut,
@@ -621,6 +617,7 @@ export const Booking: React.FC = () => {
             depositAmount,
             grandTotal,
             payment_method: 'thawani',
+            awaitingPayment: true,
             idImageUrl: idImageUrl || undefined,
             stay_type: stayType,
             guestCount,
@@ -644,46 +641,30 @@ export const Booking: React.FC = () => {
             ...(termsAccepted ? { termsAccepted: true, termsAcceptedAt: termsTimestamp } : {}),
           });
 
-          thawaniBooking = result.booking;
-          thawaniPropertyName = result.property_name;
-
-          sendWhatsAppInvoice({
-            guest_name: guestName.trim(),
-            guest_phone: `+968${guestPhone.replace(/\s/g, '')}`,
-            id: result.booking.id,
+          const bookingId = result.booking.id;
+          if (!bookingId) throw new Error('Booking was not created correctly. Please try again.');
+          const origin = window.location.origin;
+          const { redirectUrl } = await createThawaniCheckout({
+            bookingId,
+            amountInOMR: grandTotal,
+            successUrl: `${origin}/confirmation?booking=${bookingId}`,
+            cancelUrl: `${origin}/?canceled=${bookingId}`,
+            customer: {
+              name: guestName.trim(),
+              phone: guestPhoneIntl,
+              email: guestEmail || undefined,
+            },
           });
-        } catch (saveErr: any) {
-          console.error('Thawani booking save error (continuing to confirmation):', saveErr.message);
-          // Build a fallback booking object so the confirmation page still renders
-          thawaniBooking = {
-            id: `demo-${Date.now()}`,
-            guest_name: guestName.trim(),
-            guest_phone: `+968${guestPhone.replace(/\s/g, '')}`,
-            check_in: checkIn,
-            check_out: checkOut,
-            nights: isDayUse ? 0 : nights,
-            nightly_rate: property.nightly_rate,
-            security_deposit: depositAmount,
-            stayTotal,
-            depositAmount,
-            grandTotal,
-            total_amount: grandTotal,
-            payment_method: 'thawani',
-            status: 'confirmed',
-            payment_status: 'paid',
-            created_at: new Date().toISOString(),
-          };
+
+          // Hand off to Thawani's secure page. Keep the redirecting flag on so
+          // the button stays disabled until the browser actually navigates away.
+          window.location.href = redirectUrl;
+        } catch (payErr: any) {
+          console.error('Thawani checkout error:', payErr?.message || payErr);
+          setThawaniSimulating(false);
+          setSubmitError(payErr?.message || 'Could not start payment. Please try again.');
+          setSubmitting(false);
         }
-
-        setThawaniSimulating(false);
-
-        // Always navigate — demo must never crash
-        navigate('/confirmation', {
-          state: {
-            booking: thawaniBooking,
-            propertyName: thawaniPropertyName,
-          },
-        });
         return;
       }
 

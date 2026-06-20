@@ -40,12 +40,18 @@ export const bookingsApi = {
     depositAmount?: number;
     grandTotal?: number;
     payment_method: 'thawani' | 'bank_transfer' | 'walk_in';
+    /** True for online card bookings created before Thawani confirms payment. */
+    awaitingPayment?: boolean;
     receipt_image?: string;
     receiptURL?: string;
     idImageUrl?: string;
     stay_type?: 'day_use' | 'night_stay' | 'event';
+    guestCount?: number;
+    discount_amount?: number;
+    discount_kind?: 'percent' | 'flat' | 'last_night_half';
     slot_id?: string;
     slot_name?: string;
+    slot_name_ar?: string;
     slot_start_time?: string;
     slot_end_time?: string;
     check_in_time?: string;
