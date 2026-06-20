@@ -41,6 +41,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
         try {
           const profile = (await authApi.me(fbUser.uid)) as User | null;
+          // Heal a stale doc role BEFORE admin views mount and query Firestore,
+          // so the dashboard/Property Editor don't hit "Missing or insufficient
+          // permissions" on first load. No-ops instantly when already correct.
+          await authApi.reconcileAdminRole(fbUser.uid, profile?.email ?? fbUser.email, profile?.role);
           if (profile) {
             // Email-based admin allowlist wins when the Firestore doc is stale.
             const role = profile.role === 'admin' || isAdminEmail(profile.email)

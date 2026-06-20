@@ -124,6 +124,8 @@ export const firestoreUsers = {
       phone: fbUser.phoneNumber || '',
     };
 
+    const emailIsAdmin = isAdminEmail(fbUser.email);
+
     let profile: Omit<AppUser, 'id'> = fallback;
     try {
       const profileRef = doc(db, 'users', fbUser.uid);
@@ -132,10 +134,23 @@ export const firestoreUsers = {
         const data = profileSnap.data();
         profile = {
           name: data.name || fallback.name,
+          // The email allowlist is the source of truth for admin status, so a
+          // stale 'client' role on the doc can never lock an owner out.
+          role: emailIsAdmin ? 'admin' : ((data.role as UserRole) || fallback.role),
           email: data.email || fallback.email,
-          role: (data.role as UserRole) || fallback.role,
           phone: data.phone || fallback.phone,
         };
+        // Heal a mismatched role on the doc itself — the Firestore security
+        // rules read THIS field (not the allowlist), so without this the admin
+        // dashboard and Property Editor saves fail with "Missing or
+        // insufficient permissions". Updating one's own doc is rule-permitted.
+        if (emailIsAdmin && data.role !== 'admin') {
+          try {
+            await setDoc(profileRef, { role: 'admin' }, { merge: true });
+          } catch (roleErr) {
+            console.warn('Could not upgrade user role to admin:', roleErr);
+          }
+        }
       } else {
         try {
           await setDoc(profileRef, { ...fallback, created_at: new Date().toISOString() });
@@ -179,6 +194,23 @@ export const firestoreUsers = {
 
   async logout(): Promise<void> {
     await signOut(auth);
+  },
+
+  /**
+   * Ensure an allowlisted admin's Firestore user doc carries role 'admin'.
+   * The security rules read this field (not the email allowlist), so a stale
+   * 'client' doc — or one created before this email became an admin — would
+   * otherwise deny the dashboard and Property Editor. Safe to call on every
+   * auth-state restore: it only writes when a correction is actually needed,
+   * and updating one's own doc is permitted by the rules.
+   */
+  async reconcileAdminRole(uid: string, email: string | null, currentRole?: string): Promise<void> {
+    if (!isAdminEmail(email) || currentRole === 'admin') return;
+    try {
+      await setDoc(doc(db, 'users', uid), { role: 'admin' }, { merge: true });
+    } catch (err) {
+      console.warn('Could not reconcile admin role:', err);
+    }
   },
 
   async getById(id: string): Promise<AppUser | null> {
@@ -269,6 +301,7 @@ export interface FirestoreBooking {
   discount_kind?: 'percent' | 'flat' | 'last_night_half';
   slot_id?: string;
   slot_name?: string;
+  slot_name_ar?: string;
   slot_start_time?: string;
   slot_end_time?: string;
   check_in_time?: string;
@@ -293,6 +326,8 @@ export const firestoreBookings = {
     depositAmount?: number;
     grandTotal?: number;
     payment_method: 'thawani' | 'bank_transfer' | 'walk_in';
+    /** True for online card bookings created before Thawani confirms payment. */
+    awaitingPayment?: boolean;
     payment_mode?: 'paid' | 'free';
     amount_paid?: number;
     deposit_paid?: boolean;
@@ -306,6 +341,7 @@ export const firestoreBookings = {
     discount_kind?: 'percent' | 'flat' | 'last_night_half';
     slot_id?: string;
     slot_name?: string;
+    slot_name_ar?: string;
     slot_start_time?: string;
     slot_end_time?: string;
     check_in_time?: string;
@@ -322,6 +358,9 @@ export const firestoreBookings = {
     const depositAmount = Number(data.depositAmount) || Number(data.security_deposit) || 0;
     const isWalkIn = data.payment_method === 'walk_in';
     const isBankTransfer = data.payment_method === 'bank_transfer';
+    // Online card booking written *before* payment clears. Stays pending until
+    // /api/thawani/webhook verifies the session and flips it to confirmed/paid.
+    const awaitingPayment = data.awaitingPayment === true;
     const isFreeWalkIn = isWalkIn && data.payment_mode === 'free';
     const isManual = data.isManual === true;
     // Online flows always assume the security deposit has cleared alongside the
@@ -332,11 +371,14 @@ export const firestoreBookings = {
     // Walk-in grandTotal: amount_paid for the stay, plus deposit only when it
     // was actually collected. Online flows keep using their explicit grandTotal.
     const walkInStayPaid = isFreeWalkIn ? 0 : Number(data.amount_paid) || 0;
+    // Online flows now honour the guest's deposit choice too: when the deposit
+    // is paid on arrival the booking total is the stay only, with the deposit
+    // tracked separately as the balance due.
     const grandTotal = isWalkIn
       ? walkInStayPaid + (depositPaid ? depositAmount : 0)
-      : (Number(data.grandTotal) || (stayTotal + depositAmount));
+      : (depositPaid ? stayTotal + depositAmount : stayTotal);
     // Amount still owed on arrival — drives the "Deposit Due on Arrival" notice.
-    const balanceDue = isWalkIn && !depositPaid ? depositAmount : 0;
+    const balanceDue = !depositPaid ? depositAmount : 0;
 
     // payment_status: free → 'free', paid walk-in → 'paid', bank_transfer → 'pending',
     // thawani → 'paid'. Walk-in falls back to 'pending' if no mode set.
@@ -345,6 +387,7 @@ export const firestoreBookings = {
     else if (isWalkIn && data.payment_mode === 'paid') paymentStatus = 'paid';
     else if (isBankTransfer) paymentStatus = 'pending';
     else if (isWalkIn) paymentStatus = 'pending';
+    else if (awaitingPayment) paymentStatus = 'pending';
     else paymentStatus = 'paid';
 
     const booking: Omit<FirestoreBooking, 'id'> = {
@@ -363,9 +406,9 @@ export const firestoreBookings = {
       depositAmount,
       grandTotal,
       balance_due: balanceDue,
-      deposit_paid: isWalkIn ? depositPaid : true,
+      deposit_paid: depositPaid,
       ...(isManual ? { isManual: true } : {}),
-      status: isBankTransfer ? 'pending' : 'confirmed',
+      status: (isBankTransfer || awaitingPayment) ? 'pending' : 'confirmed',
       payment_status: paymentStatus,
       payment_method: data.payment_method,
       receipt_image: data.receipt_image || '',
@@ -382,6 +425,7 @@ export const firestoreBookings = {
       ...(data.slot_id ? {
         slot_id: data.slot_id,
         slot_name: data.slot_name || '',
+        slot_name_ar: data.slot_name_ar || '',
         slot_start_time: data.slot_start_time || '',
         slot_end_time: data.slot_end_time || '',
       } : {}),
@@ -424,8 +468,8 @@ export const firestoreBookings = {
 
     // Create notification for admin
     await addDoc(notificationsCol(), {
-      type: isBankTransfer ? 'pending_payment' : 'new_booking',
-      title: isBankTransfer ? 'Bank Transfer Pending' : 'New Booking',
+      type: (isBankTransfer || awaitingPayment) ? 'pending_payment' : 'new_booking',
+      title: isBankTransfer ? 'Bank Transfer Pending' : awaitingPayment ? 'Awaiting Card Payment' : 'New Booking',
       message: `${data.guest_name} booked ${data.property_name} (${nights > 0 ? `${nights} nights` : 'Day Use'})`,
       booking_id: docRef.id,
       read: false,

@@ -17,6 +17,8 @@ export const authApi = {
   register: (data: { name: string; email: string; password: string; phone?: string }) => firestoreUsers.register(data),
   logout: () => firestoreUsers.logout(),
   me: (id: string) => firestoreUsers.getById(id),
+  reconcileAdminRole: (uid: string, email: string | null, currentRole?: string) =>
+    firestoreUsers.reconcileAdminRole(uid, email, currentRole),
 };
 
 // Dashboard — Firestore
@@ -40,12 +42,20 @@ export const bookingsApi = {
     depositAmount?: number;
     grandTotal?: number;
     payment_method: 'thawani' | 'bank_transfer' | 'walk_in';
+    /** True for online card bookings created before Thawani confirms payment. */
+    awaitingPayment?: boolean;
+    /** False when the guest opts to pay the security deposit on arrival. */
+    deposit_paid?: boolean;
     receipt_image?: string;
     receiptURL?: string;
     idImageUrl?: string;
     stay_type?: 'day_use' | 'night_stay' | 'event';
+    guestCount?: number;
+    discount_amount?: number;
+    discount_kind?: 'percent' | 'flat' | 'last_night_half';
     slot_id?: string;
     slot_name?: string;
+    slot_name_ar?: string;
     slot_start_time?: string;
     slot_end_time?: string;
     check_in_time?: string;

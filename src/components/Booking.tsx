@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight, ShieldCheck, AlertCircle, ArrowLeft, Upload,
 import { maxGuestsFor, clampGuestCount } from '../config/occupancy';
 import { cn } from '@/src/lib/utils';
 import { propertiesApi, bookingsApi } from '../services/api';
+import { createThawaniCheckout } from '../services/thawani';
 import { downloadTermsPDF } from '../services/pdf';
 import { uploadToCloudinary } from '../services/cloudinary';
 import { sendWhatsAppInvoice } from './Invoices';
@@ -36,9 +37,15 @@ export const Booking: React.FC = () => {
   // Capacity caps depend on stayType — overnight beds vs day-use gathering.
   // Re-clamped via a useEffect below when stayType changes.
   const [guestCount, setGuestCount] = useState<number>(2);
-  // Thawani temporarily hidden from the public UI; bank transfer is the only guest-visible option.
-  const SHOW_THAWANI = false;
+  // Thawani card payment runs alongside bank transfer as a guest-visible option.
+  const SHOW_THAWANI = true;
   const [paymentMethod, setPaymentMethod] = useState<'thawani' | 'bank_transfer'>('bank_transfer');
+  // Deposit handling — default is "pay on arrival" (owners' usual preference);
+  // the guest may opt to add the refundable deposit to today's payment.
+  const [payDepositNow, setPayDepositNow] = useState(false);
+  // Owner override from Property Editor: 'guest_choice' (default) shows the
+  // toggle; 'on_arrival' / 'upfront' force the mode and hide the toggle.
+  const [depositPolicy, setDepositPolicy] = useState<'guest_choice' | 'on_arrival' | 'upfront'>('guest_choice');
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [receiptFileName, setReceiptFileName] = useState('');
 
@@ -217,6 +224,9 @@ export const Booking: React.FC = () => {
           }
           if (data.termsOfStay) {
             setTermsOfStayRaw(data.termsOfStay);
+          }
+          if (data.depositPolicy === 'on_arrival' || data.depositPolicy === 'upfront' || data.depositPolicy === 'guest_choice') {
+            setDepositPolicy(data.depositPolicy);
           }
         }
       })
@@ -445,8 +455,18 @@ export const Booking: React.FC = () => {
 
   const stayTotal = priceBreakdown?.total || 0;
   const depositAmount = Number(securityDeposit) || 0;
-  // Deposit is collected with the booking, so it's part of the Grand Total.
+  // Deposit can be collected with the booking or on arrival — guest's choice,
+  // unless the owner pins the policy in the Property Editor.
   const grandTotal = stayTotal + depositAmount;
+  const effectivePayDepositNow =
+    depositPolicy === 'upfront' ? true
+    : depositPolicy === 'on_arrival' ? false
+    : payDepositNow;
+  // The guest only picks when the owner allows it and a deposit exists.
+  const showDepositChoice = depositAmount > 0 && depositPolicy === 'guest_choice';
+  // Amount actually charged/transferred now: stay only when the deposit is left
+  // for arrival, otherwise stay + deposit.
+  const payNowTotal = effectivePayDepositNow ? grandTotal : stayTotal;
 
   // Resolve Check-in / Check-out wall-clock times from the timing engine.
   // Day use pivots on the selected day; night stay / event pivot on the
@@ -594,24 +614,19 @@ export const Booking: React.FC = () => {
         }
       }
 
-      // Thawani — simulate payment gateway for prototype demo
+      // Thawani — create a pending booking, then redirect to Thawani's hosted
+      // checkout. /api/thawani/webhook verifies the session server-side and
+      // flips the booking to confirmed/paid once payment actually clears.
       if (paymentMethod === 'thawani') {
         setThawaniSimulating(true);
-
-        // Simulate 2-second network delay (Thawani redirect)
-        await new Promise(resolve => setTimeout(resolve, 2000));
-
-        let thawaniBooking: any = null;
-        let thawaniPropertyName = property.name;
-
+        const termsTimestamp = new Date().toISOString();
+        const guestPhoneIntl = `+968${guestPhone.replace(/\s/g, '')}`;
         try {
-          // Save booking to Firestore as paid
-          const termsTimestamp = new Date().toISOString();
           const result = await bookingsApi.create({
             property_id: property.id,
             property_name: property.name,
             guest_name: guestName.trim(),
-            guest_phone: `+968${guestPhone.replace(/\s/g, '')}`,
+            guest_phone: guestPhoneIntl,
             guest_email: guestEmail || undefined,
             check_in: checkIn,
             check_out: checkOut,
@@ -621,6 +636,8 @@ export const Booking: React.FC = () => {
             depositAmount,
             grandTotal,
             payment_method: 'thawani',
+            awaitingPayment: true,
+            deposit_paid: effectivePayDepositNow,
             idImageUrl: idImageUrl || undefined,
             stay_type: stayType,
             guestCount,
@@ -644,46 +661,30 @@ export const Booking: React.FC = () => {
             ...(termsAccepted ? { termsAccepted: true, termsAcceptedAt: termsTimestamp } : {}),
           });
 
-          thawaniBooking = result.booking;
-          thawaniPropertyName = result.property_name;
-
-          sendWhatsAppInvoice({
-            guest_name: guestName.trim(),
-            guest_phone: `+968${guestPhone.replace(/\s/g, '')}`,
-            id: result.booking.id,
+          const bookingId = result.booking.id;
+          if (!bookingId) throw new Error('Booking was not created correctly. Please try again.');
+          const origin = window.location.origin;
+          const { redirectUrl } = await createThawaniCheckout({
+            bookingId,
+            amountInOMR: payNowTotal,
+            successUrl: `${origin}/confirmation?booking=${bookingId}`,
+            cancelUrl: `${origin}/?canceled=${bookingId}`,
+            customer: {
+              name: guestName.trim(),
+              phone: guestPhoneIntl,
+              email: guestEmail || undefined,
+            },
           });
-        } catch (saveErr: any) {
-          console.error('Thawani booking save error (continuing to confirmation):', saveErr.message);
-          // Build a fallback booking object so the confirmation page still renders
-          thawaniBooking = {
-            id: `demo-${Date.now()}`,
-            guest_name: guestName.trim(),
-            guest_phone: `+968${guestPhone.replace(/\s/g, '')}`,
-            check_in: checkIn,
-            check_out: checkOut,
-            nights: isDayUse ? 0 : nights,
-            nightly_rate: property.nightly_rate,
-            security_deposit: depositAmount,
-            stayTotal,
-            depositAmount,
-            grandTotal,
-            total_amount: grandTotal,
-            payment_method: 'thawani',
-            status: 'confirmed',
-            payment_status: 'paid',
-            created_at: new Date().toISOString(),
-          };
+
+          // Hand off to Thawani's secure page. Keep the redirecting flag on so
+          // the button stays disabled until the browser actually navigates away.
+          window.location.href = redirectUrl;
+        } catch (payErr: any) {
+          console.error('Thawani checkout error:', payErr?.message || payErr);
+          setThawaniSimulating(false);
+          setSubmitError(payErr?.message || 'Could not start payment. Please try again.');
+          setSubmitting(false);
         }
-
-        setThawaniSimulating(false);
-
-        // Always navigate — demo must never crash
-        navigate('/confirmation', {
-          state: {
-            booking: thawaniBooking,
-            propertyName: thawaniPropertyName,
-          },
-        });
         return;
       }
 
@@ -703,6 +704,7 @@ export const Booking: React.FC = () => {
         depositAmount,
         grandTotal,
         payment_method: paymentMethod,
+        deposit_paid: effectivePayDepositNow,
         stay_type: stayType,
         guestCount,
         ...(priceBreakdown && priceBreakdown.discount_amount > 0
@@ -727,11 +729,14 @@ export const Booking: React.FC = () => {
         ...(termsAccepted ? { termsAccepted: true, termsAcceptedAt: bankTermsTimestamp } : {}),
       });
 
+      const bankBookingId = result.booking.id;
+      if (!bankBookingId) throw new Error('Booking was not created correctly. Please try again.');
+
       // Trigger WhatsApp invoice (will connect API next)
       sendWhatsAppInvoice({
         guest_name: guestName.trim(),
         guest_phone: `+968${guestPhone.replace(/\s/g, '')}`,
-        id: result.booking.id,
+        id: bankBookingId,
       });
 
       navigate('/confirmation', {
@@ -1220,8 +1225,17 @@ export const Booking: React.FC = () => {
             </div>
             {depositAmount > 0 && (
               <div className="flex justify-between items-center text-sm">
-                <span className="text-primary-navy/60 font-medium">{t('booking.securityDeposit')}</span>
-                <span className="font-bold text-primary-navy">{depositAmount} {t('common.omr')}</span>
+                <span className="text-primary-navy/60 font-medium">
+                  {t('booking.securityDeposit')}
+                  {!effectivePayDepositNow && (
+                    <span className="ms-1 text-[10px] text-primary-navy/40 normal-case font-normal">
+                      ({t('booking.dueOnArrival')})
+                    </span>
+                  )}
+                </span>
+                <span className={cn("font-bold", effectivePayDepositNow ? "text-primary-navy" : "text-primary-navy/40")}>
+                  {depositAmount} {t('common.omr')}
+                </span>
               </div>
             )}
           </div>
@@ -1259,9 +1273,16 @@ export const Booking: React.FC = () => {
           )}
 
           <div className="pt-4 border-t border-primary-navy/5 flex justify-between items-end gap-2">
-            <p className="text-lg sm:text-xl font-bold font-headline">{t('booking.grandTotal')}</p>
+            <p className="text-lg sm:text-xl font-bold font-headline">
+              {effectivePayDepositNow || depositAmount === 0 ? t('booking.grandTotal') : t('booking.payNowLabel')}
+            </p>
             <div className="text-end shrink-0">
-              <p className="text-xl sm:text-2xl font-bold text-secondary-gold font-headline">{grandTotal} {t('common.omr')}</p>
+              <p className="text-xl sm:text-2xl font-bold text-secondary-gold font-headline">{payNowTotal} {t('common.omr')}</p>
+              {!effectivePayDepositNow && depositAmount > 0 && (
+                <p className="text-[10px] text-primary-navy/40 font-medium mt-1">
+                  {t('booking.depositDueLater', { amount: depositAmount, currency: t('common.omr') })}
+                </p>
+              )}
             </div>
           </div>
         </motion.section>
@@ -1418,6 +1439,54 @@ export const Booking: React.FC = () => {
             </button>
           </div>
 
+          {/* Security Deposit — pay now or on arrival (guest choice only) */}
+          {showDepositChoice && (
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-secondary-gold">
+                {t('booking.depositPaymentTitle')} · {depositAmount} {t('common.omr')}
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setPayDepositNow(false)}
+                  className={cn(
+                    "relative p-4 rounded-[16px] border-2 transition-all text-start space-y-1",
+                    !payDepositNow
+                      ? "border-primary-navy bg-primary-navy/5"
+                      : "border-primary-navy/10 bg-white hover:border-primary-navy/20"
+                  )}
+                >
+                  {!payDepositNow && (
+                    <div className="absolute top-3 end-3 w-5 h-5 bg-primary-navy rounded-full flex items-center justify-center">
+                      <Check size={12} className="text-white" />
+                    </div>
+                  )}
+                  <p className="text-xs font-bold text-primary-navy">{t('booking.depositOnArrivalOption')}</p>
+                  <p className="text-[10px] text-primary-navy/50 font-medium">{t('booking.depositOnArrivalHint')}</p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPayDepositNow(true)}
+                  className={cn(
+                    "relative p-4 rounded-[16px] border-2 transition-all text-start space-y-1",
+                    payDepositNow
+                      ? "border-primary-navy bg-primary-navy/5"
+                      : "border-primary-navy/10 bg-white hover:border-primary-navy/20"
+                  )}
+                >
+                  {payDepositNow && (
+                    <div className="absolute top-3 end-3 w-5 h-5 bg-primary-navy rounded-full flex items-center justify-center">
+                      <Check size={12} className="text-white" />
+                    </div>
+                  )}
+                  <p className="text-xs font-bold text-primary-navy">{t('booking.depositNowOption')}</p>
+                  <p className="text-[10px] text-primary-navy/50 font-medium">{t('booking.depositNowHint')}</p>
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Bank Transfer Details & Receipt Upload */}
           {paymentMethod === 'bank_transfer' && (
             <motion.div
@@ -1565,7 +1634,7 @@ export const Booking: React.FC = () => {
           ) : (
             <>
               {t('booking.payWithThawani')}
-              <span className="text-[10px] opacity-40 lowercase font-normal">({grandTotal} {t('common.omr')})</span>
+              <span className="text-[10px] opacity-40 lowercase font-normal">({payNowTotal} {t('common.omr')})</span>
             </>
           )}
         </button>
