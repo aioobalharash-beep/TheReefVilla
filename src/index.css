@@ -1,0 +1,562 @@
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=Cinzel:wght@400;500;600;700;800;900&family=Cormorant+Garamond:wght@400;500;600;700&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=Montserrat:wght@300;400;500;600;700;800&family=Noto+Serif:wght@400;600;700;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Lato:wght@400;700&display=swap');
+@import "tailwindcss";
+
+/* ─── Al Haitham Rest House — Cobalt Blue Brand Theme ───────────────────── */
+@theme {
+  /* Typography — stone-carved serifs over clean sans body */
+  --font-headline: "Cinzel", "Cormorant Garamond", "Noto Serif", serif;
+  --font-serif: "Cormorant Garamond", "Cinzel", serif;
+  --font-body: "Montserrat", "Plus Jakarta Sans", sans-serif;
+  --font-lato: "Lato", sans-serif;
+  --font-arabic: "Cairo", "IBM Plex Sans Arabic", sans-serif;
+
+  /* Cobalt Blue palette — sampled from the Al Haitham logo */
+  --color-limestone: #F1F5F9;       /* base background (cool off-white) */
+  --color-slate: #1E3A8A;           /* deep contrast sections (deep cobalt) */
+  --color-juniper: #3B82F6;         /* primary accent / success (bright blue) */
+  --color-rose: #93C5FD;            /* soft accent / hover / badge (sky blue) */
+  --color-obsidian: #0F172A;        /* primary text (near-black blue) */
+  --color-off-white: #F9FAFB;       /* text on dark */
+
+  /* Legacy aliases — keep existing components rendering coherently */
+  --color-primary-navy: #1E3A8A;    /* → slate */
+  --color-secondary-gold: #3B82F6;  /* → juniper */
+  --color-pearl-white: #F1F5F9;     /* → limestone */
+
+  /* Chiseled geometry — no bubbly mobile-app radii */
+  --radius-chisel: 8px;
+  --radius-2xl: 8px;
+
+  /* Stone-block shadow */
+  --shadow-stone: 10px 10px 25px rgba(0, 0, 0, 0.15);
+  --shadow-stone-sm: 4px 4px 12px rgba(0, 0, 0, 0.12);
+  --shadow-rose-glow: 0 0 18px rgba(180, 142, 146, 0.45);
+}
+
+/* ─── Rock-grain noise texture for Slate sections ───────────────────────── */
+.texture-stone {
+  position: relative;
+  isolation: isolate;
+}
+.texture-stone::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.18;
+  mix-blend-mode: overlay;
+  z-index: 0;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+.texture-stone > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ─── Recessed groove (multi-property toggle track) ─────────────────────── */
+.groove-recessed {
+  background: linear-gradient(180deg, #102457 0%, #1E3A8A 50%, #2B4FB0 100%);
+  box-shadow:
+    inset 0 4px 8px rgba(0, 0, 0, 0.55),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.04);
+}
+
+/* ─── Mist effect for the booking modal ─────────────────────────────────── */
+.mist-backdrop {
+  background-color: rgba(30, 58, 138, 0.35);
+  backdrop-filter: blur(15px) grayscale(20%);
+  -webkit-backdrop-filter: blur(15px) grayscale(20%);
+}
+
+@layer base {
+  /* ─── Mobile-first base ─────────────────────────────────────────────────── */
+
+  /* Prevent any element from causing horizontal scroll */
+  html {
+    overflow-x: hidden;
+    /* Fluid base font: 14px on 320px screens → 16px on 430px+ screens */
+    font-size: clamp(0.875rem, 3.5vw, 1rem);
+    -webkit-text-size-adjust: 100%; /* stop iOS auto-inflate on landscape */
+    text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-pearl-white text-primary-navy font-body antialiased;
+    overflow-x: hidden;
+    max-width: 100%;
+    /* Prevent long words / URLs from blowing out containers */
+    word-break: break-word;
+    overflow-wrap: break-word;
+  }
+
+  /* All flex/grid children respect their container — the #1 cause of overflow */
+  *, *::before, *::after {
+    min-width: 0;
+  }
+
+  /* Touch targets: WCAG 2.5.5 / Apple HIG minimum 44 px for form controls */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+  select {
+    min-height: 2.75rem; /* 44px */
+  }
+
+  /* Images never spill out of their containers */
+  img, picture, video, canvas, svg {
+    display: block;
+    max-width: 100%;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-headline;
+  }
+
+  /* ─── Arabic typography ─────────────────────────────────────────────────── */
+  /* Activated via html.ar class set by LanguageContext */
+  html.ar body {
+    /* Cairo renders better than IBM Plex on Android; IBM Plex is the fallback */
+    font-family: "Cairo", "IBM Plex Sans Arabic", sans-serif;
+    /* 1.6 prevents diacritic/descender clipping on Android Chrome & Samsung Browser */
+    line-height: 1.6;
+  }
+
+  html.ar h1, html.ar h2, html.ar h3, html.ar h4, html.ar h5, html.ar h6 {
+    font-family: "Cairo", "IBM Plex Sans Arabic", sans-serif;
+    font-weight: 700;
+    line-height: 1.6;
+  }
+
+  /* Override headline/body font utilities when Arabic */
+  html.ar .font-headline {
+    font-family: "Cairo", "IBM Plex Sans Arabic", sans-serif;
+  }
+  html.ar .font-body {
+    font-family: "Cairo", "IBM Plex Sans Arabic", sans-serif;
+  }
+  html.ar .font-lato {
+    font-family: "Cairo", "IBM Plex Sans Arabic", sans-serif;
+  }
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ---------------------------------------------------------------------------
+   Printable Invoice — hidden on screen, A4 in print
+   --------------------------------------------------------------------------- */
+.printable-invoice {
+  display: none;
+}
+
+/* Automatic page break — used on the Terms of Stay section */
+.page-break {
+  break-before: page;
+  page-break-before: always;
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 0;
+  }
+
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  .printable-invoice,
+  .printable-invoice * {
+    visibility: visible !important;
+  }
+
+  .printable-invoice {
+    display: block !important;
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    background: #fff !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  /* Fixed A4 width — prevents mobile browsers from squashing the print */
+  #invoice-container {
+    width: 210mm !important;
+    max-width: 210mm !important;
+    min-width: 210mm !important;
+    margin: 0 auto !important;
+    box-sizing: border-box !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+}
+
+.printable-invoice .pi-sheet {
+  font-family: 'Cairo', 'IBM Plex Sans Arabic', 'Plus Jakarta Sans', sans-serif;
+  color: #1E3A8A;
+  background: #fff;
+  width: 210mm;
+  min-height: 297mm;
+  margin: 0 auto;
+  padding: 18mm 16mm 14mm;
+  box-sizing: border-box;
+  line-height: 1.6;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.printable-invoice[dir="rtl"] .pi-sheet {
+  font-family: 'Cairo', 'IBM Plex Sans Arabic', sans-serif;
+}
+
+/* Header */
+.printable-invoice .pi-header {
+  position: relative;
+  padding-bottom: 14mm;
+}
+.printable-invoice .pi-header-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+}
+.printable-invoice .pi-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.printable-invoice .invoice-logo {
+  width: 72px;
+  height: 72px;
+  flex-shrink: 0;
+  object-fit: contain;
+  display: block;
+}
+.printable-invoice .pi-brand-name {
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  color: #1E3A8A;
+}
+.printable-invoice .pi-brand-tag {
+  font-size: 10px;
+  color: #6b7280;
+  margin-top: 2px;
+  letter-spacing: 0.3px;
+}
+.printable-invoice .pi-title-block {
+  text-align: end;
+}
+.printable-invoice .pi-title {
+  font-size: 32px;
+  font-weight: 800;
+  color: #1E3A8A;
+  letter-spacing: 4px;
+  line-height: 1;
+}
+.printable-invoice .pi-ref {
+  margin-top: 6px;
+  font-size: 11px;
+  color: #3B82F6;
+  font-weight: 700;
+  letter-spacing: 2px;
+}
+.printable-invoice .pi-header-accent {
+  margin-top: 10mm;
+  height: 3px;
+  background: linear-gradient(90deg, #1E3A8A 0%, #1E3A8A 65%, #3B82F6 65%, #3B82F6 100%);
+  border-radius: 2px;
+}
+
+/* Meta */
+.printable-invoice .pi-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20mm;
+  margin: 10mm 0 8mm;
+}
+.printable-invoice .pi-meta-col:last-child {
+  text-align: end;
+}
+.printable-invoice .pi-meta-label {
+  font-size: 9px;
+  font-weight: 700;
+  color: #9ca3af;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.printable-invoice .pi-meta-label-sm {
+  margin-top: 8px;
+}
+.printable-invoice .pi-meta-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1E3A8A;
+}
+.printable-invoice .pi-meta-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1E3A8A;
+}
+.printable-invoice .pi-meta-sub {
+  font-size: 11px;
+  color: #6b7280;
+  margin-top: 2px;
+}
+
+/* Stay window */
+.printable-invoice .pi-stay {
+  margin-top: 2mm;
+  padding: 10px 14px;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+}
+.printable-invoice .pi-stay-label {
+  font-size: 9px;
+  font-weight: 700;
+  color: #9ca3af;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.printable-invoice .pi-stay-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  align-items: center;
+}
+.printable-invoice .pi-stay-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 12px;
+  color: #1E3A8A;
+}
+.printable-invoice .pi-stay-chip-label {
+  font-weight: 700;
+  color: #1E3A8A;
+  letter-spacing: 0.3px;
+}
+.printable-invoice .pi-stay-chip-value {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  color: #374151;
+}
+.printable-invoice .pi-stay-date {
+  font-weight: 600;
+}
+.printable-invoice .pi-stay-sep {
+  color: #3B82F6;
+  font-weight: 700;
+  margin: 0 2px;
+}
+.printable-invoice .pi-stay-time {
+  font-weight: 700;
+  color: #1E3A8A;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Table */
+.printable-invoice .pi-table-wrap {
+  margin-top: 6mm;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  overflow: hidden;
+}
+.printable-invoice .pi-table-head {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: #1E3A8A;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+.printable-invoice .pi-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 12px 16px;
+  border-top: 1px solid #f1f5f9;
+  font-size: 13px;
+  color: #1E3A8A;
+}
+.printable-invoice .pi-row:first-of-type {
+  border-top: none;
+}
+.printable-invoice .pi-row-muted span:first-child {
+  color: #6b7280;
+}
+.printable-invoice .pi-row-amount {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Grand total */
+.printable-invoice .pi-total {
+  margin-top: 6mm;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 14px 20px;
+  background: #1E3A8A;
+  color: #fff;
+  border-radius: 10px;
+}
+.printable-invoice .pi-total-label {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
+.printable-invoice .pi-total-value {
+  font-size: 22px;
+  font-weight: 800;
+  color: #3B82F6;
+  font-variant-numeric: tabular-nums;
+}
+.printable-invoice .pi-total-currency {
+  font-size: 12px;
+  margin: 0 4px;
+  color: #3B82F6;
+  opacity: 0.85;
+}
+
+/* Notice */
+.printable-invoice .pi-notice {
+  margin-top: 6mm;
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  padding: 12px 16px;
+  border-radius: 10px;
+}
+.printable-invoice .pi-notice-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #b91c1c;
+}
+.printable-invoice .pi-notice-body {
+  font-size: 11px;
+  color: #991b1b;
+  margin-top: 2px;
+}
+
+/* Footer */
+.printable-invoice .pi-footer {
+  position: absolute;
+  left: 16mm;
+  right: 16mm;
+  bottom: 10mm;
+}
+.printable-invoice .pi-footer-rule {
+  height: 1px;
+  background: #e5e7eb;
+  margin-bottom: 8px;
+}
+.printable-invoice .pi-footer-text {
+  text-align: center;
+  font-size: 9px;
+  color: #9ca3af;
+  letter-spacing: 0.5px;
+}
+.printable-invoice .pi-footer-location {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #1E3A8A;
+  text-decoration: none;
+  letter-spacing: 0.4px;
+}
+.printable-invoice .pi-footer-location-icon {
+  color: #3B82F6;
+  flex: none;
+}
+.printable-invoice .pi-footer-location-sep {
+  color: #3B82F6;
+  font-weight: 700;
+}
+.printable-invoice .pi-footer-location-ar,
+.printable-invoice .pi-footer-location-en {
+  display: inline-block;
+}
+
+/* Terms of Stay — page 2 */
+.printable-invoice .pi-terms {
+  padding-top: 18mm;
+  padding-bottom: 14mm;
+}
+.printable-invoice .pi-terms-header {
+  margin-bottom: 10mm;
+}
+.printable-invoice .pi-terms-eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  color: #3B82F6;
+  text-transform: uppercase;
+}
+.printable-invoice .pi-terms-title {
+  font-size: 30px;
+  font-weight: 800;
+  color: #1E3A8A;
+  margin: 4px 0 6px;
+  letter-spacing: 1px;
+}
+.printable-invoice .pi-terms-intro {
+  font-size: 11px;
+  color: #6b7280;
+  margin: 0 0 10px;
+}
+.printable-invoice .pi-terms-accent {
+  height: 3px;
+  width: 80px;
+  background: #3B82F6;
+  border-radius: 2px;
+}
+.printable-invoice .pi-terms-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6mm;
+}
+.printable-invoice .pi-terms-block {
+  break-inside: avoid;
+  page-break-inside: avoid;
+  border-inline-start: 3px solid #3B82F6;
+  padding-inline-start: 12px;
+}
+.printable-invoice .pi-terms-heading {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1E3A8A;
+  margin: 0 0 4px;
+  letter-spacing: 0.3px;
+}
+.printable-invoice .pi-terms-text {
+  font-size: 11.5px;
+  line-height: 1.75;
+  color: #374151;
+  margin: 0;
+}
+

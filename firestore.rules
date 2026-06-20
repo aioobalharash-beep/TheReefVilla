@@ -1,0 +1,109 @@
+rules_version = '2';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Al Haitham Rest House — Firestore Security Rules
+//
+// Paste into Firebase Console → Firestore Database → Rules → Publish.
+// Or deploy via CLI:  firebase deploy --only firestore:rules
+//
+// Model:
+//   • Public, unauthenticated traffic can READ the catalogue + site content
+//     (properties, settings, testimonials) and CREATE guest-side records
+//     (bookings, guests, transactions, notifications, testimonials).
+//   • Authenticated users own their /users/{uid} profile doc.
+//   • Admins (role == 'admin' on their user doc) can read/write everything.
+// ─────────────────────────────────────────────────────────────────────────────
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helpers ────────────────────────────────────────────────────────────
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function isAdmin() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // ── User profiles ──────────────────────────────────────────────────────
+    // Created on first sign-in by firestoreUsers.login(). Each user reads /
+    // writes only their own doc; admins can manage all.
+    match /users/{uid} {
+      allow read:           if isOwner(uid) || isAdmin();
+      allow create:         if isOwner(uid);
+      allow update, delete: if isOwner(uid) || isAdmin();
+    }
+
+    // ── Public catalogue & site content ────────────────────────────────────
+    // `properties` and `settings` are also written on initial bootstrap by any
+    // signed-in user so a fresh admin can seed the catalogue on first login.
+    match /properties/{id} {
+      allow read;
+      allow write: if isSignedIn();
+    }
+
+    match /settings/{id} {
+      allow read;
+      // The iCal sync endpoint runs with the firebase-admin SDK (server-only)
+      // so it bypasses these rules; admin UI writes still require role=admin.
+      allow write: if isAdmin();
+    }
+
+    // Testimonials: public submissions, admin moderation.
+    match /testimonials/{id} {
+      allow read;
+      allow create;
+      allow update, delete: if isAdmin();
+    }
+
+    // ── Guest checkout flow ────────────────────────────────────────────────
+    // The public booking page creates these as an unauthenticated guest. Only
+    // admins can read / mutate after the fact.
+    match /bookings/{id} {
+      allow read:           if isAdmin();
+      allow create;
+      allow update, delete: if isAdmin();
+    }
+
+    match /guests/{id} {
+      allow read:           if isAdmin();
+      allow create;
+      allow update, delete: if isAdmin();
+    }
+
+    match /transactions/{id} {
+      allow read:           if isAdmin();
+      allow create;
+      allow update, delete: if isAdmin();
+    }
+
+    match /notifications/{id} {
+      allow read, update:   if isAdmin();
+      allow create;
+      allow delete:         if isAdmin();
+    }
+
+    // ── Invoices (admin-managed) ───────────────────────────────────────────
+    match /invoices/{id}      { allow read, write: if isAdmin(); }
+    match /invoice_items/{id} { allow read, write: if isAdmin(); }
+
+    // ── FCM device tokens for admin push notifications ─────────────────────
+    // Collection name must match ADMIN_TOKENS_COLLECTION in
+    // src/services/pushNotifications.ts.
+    match /admin_tokens/{id} {
+      allow read, write: if isAdmin();
+    }
+
+    // ── Default deny ───────────────────────────────────────────────────────
+    // Any collection not listed above is off-limits.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
