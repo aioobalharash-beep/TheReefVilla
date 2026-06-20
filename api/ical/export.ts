@@ -9,8 +9,8 @@ import { buildIcs, type ExportEvent } from '../_lib/ical.js';
 // The token is the only access control. Treat it like a calendar share key:
 // rotate it via the admin UI to invalidate old subscriptions.
 
-const PROD_ID = '-//Al Haitham Rest House//Booking Calendar//EN';
-const CALENDAR_NAME = 'Al Haitham Rest House — Bookings';
+const PROD_ID = '-//Reef Villa//Booking Calendar//EN';
+const CALENDAR_NAME = 'Reef Villa — Bookings';
 
 interface BookingDoc {
   guest_name?: string;

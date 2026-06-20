@@ -67,7 +67,7 @@ const STATUS_CONFIG: Record<DisplayStatus, { labelKey: string; badgeClass: strin
 
 export const Guests: React.FC = () => {
   const { t, i18n } = useTranslation();
-  const brandName = i18n.language === 'ar' ? 'استراحة الهيثم' : getClientConfig().chaletName;
+  const brandName = i18n.language === 'ar' ? 'ريف فيلا' : getClientConfig().chaletName;
   const [searchParams, setSearchParams] = useSearchParams();
   const highlightName = searchParams.get('highlight');
   const highlightId = searchParams.get('id');

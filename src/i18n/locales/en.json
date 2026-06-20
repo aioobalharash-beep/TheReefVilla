@@ -16,7 +16,7 @@
     "adminPortal": "Admin Portal"
   },
   "common": {
-    "alMalak": "Al Haitham Rest House",
+    "alMalak": "Reef Villa",
     "luxuryDesertSanctuary": "Luxury Chalet",
     "curator": "Curator",
     "notifications": "Notifications",
@@ -101,7 +101,7 @@
   },
   "guests": {
     "guestManagement": "Guest Management",
-    "curatingHospitality": "Curating hospitality for Al Haitham Rest House",
+    "curatingHospitality": "Curating hospitality for Reef Villa",
     "pendingApproval": "Pending Approval",
     "upcomingArrivals": "Upcoming Arrivals",
     "checkedIn": "Checked In",
@@ -288,11 +288,11 @@
     "feedbackHelps": "Your feedback helps us craft the perfect retreat experience at {{name}}.",
     "placeholderName": "e.g. Ahmed Al-Said",
     "placeholderStayDetails": "e.g. March 2026, 3 nights",
-    "placeholderExperience": "Tell us about your stay at Al Haitham Rest House..."
+    "placeholderExperience": "Tell us about your stay at Reef Villa..."
   },
   "confirmation": {
     "bookingConfirmed": "Booking Confirmed!",
-    "thankYou": "Thank you for choosing Al Haitham Rest House",
+    "thankYou": "Thank you for choosing Reef Villa",
     "bookingDetails": "Booking Details",
     "property": "Property",
     "guest": "Guest",
@@ -345,8 +345,8 @@
     "propertyDetails": "Property Details",
     "propertyName": "Property Name",
     "propertyNameAr": "Property Name (Arabic)",
-    "propertyNamePlaceholder": "e.g. Al Haitham Rest House",
-    "propertyNameArPlaceholder": "e.g. استراحة الهيثم",
+    "propertyNamePlaceholder": "e.g. Reef Villa",
+    "propertyNameArPlaceholder": "e.g. ريف فيلا",
     "capacityGuests": "Capacity (Guests)",
     "areaM2": "Area (m²)",
     "dynamicPricing": "Dynamic Pricing",
@@ -401,7 +401,7 @@
     "bankName": "Bank Name",
     "bankNamePlaceholder": "e.g. Bank Muscat",
     "accountName": "Account Name",
-    "accountNamePlaceholder": "e.g. Al Haitham Rest House LLC",
+    "accountNamePlaceholder": "e.g. Reef Villa LLC",
     "ibanAccount": "IBAN / Account Number",
     "ibanPlaceholder": "e.g. OM12 0123 ...",
     "bankPhone": "Phone Number (for Mobile Transfer)",
@@ -411,7 +411,7 @@
     "aboutHint": "Long-form story shown on the public About page. Separate paragraphs with a blank line.",
     "aboutEnglish": "About (English)",
     "aboutArabic": "About (Arabic)",
-    "aboutPlaceholderEn": "e.g.\nAl Haitham Rest House is a luxury retreat nestled in the heart of Oman...\n\nEvery detail has been curated for the modern traveler...",
+    "aboutPlaceholderEn": "e.g.\nReef Villa is a luxury retreat nestled in the heart of Oman...\n\nEvery detail has been curated for the modern traveler...",
     "aboutPlaceholderAr": "اكتب نص ‘من نحن’ بالعربية...",
     "charsCount": "{{count}} characters",
     "aboutEmptyEn": "Leave blank to show the default About text.",

@@ -4,7 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const dbPath = path.join(__dirname, '..', 'woody-chalete.db');
+const dbPath = path.join(__dirname, '..', 'reef-villa.db');
 
 const db = new Database(dbPath);
 
@@ -115,7 +115,7 @@ function seedData() {
 
   // Users
   db.prepare(`INSERT INTO users (id, name, email, password, role, phone) VALUES (?, ?, ?, ?, ?, ?)`).run(
-    'u1', 'Al Haitham Rest House Admin', 'akwakhhwwdyman@gmail.com', passwordHash, 'admin', '+968 9941 6579'
+    'u1', 'Reef Villa Admin', 'akwakhhwwdyman@gmail.com', passwordHash, 'admin', '+968 9941 6579'
   );
   db.prepare(`INSERT INTO users (id, name, email, password, role, phone) VALUES (?, ?, ?, ?, ?, ?)`).run(
     'u2', 'Salim Al-Harthy', 'salim@guest.com', clientHash, 'client', '+968 9200 0002'
@@ -123,7 +123,7 @@ function seedData() {
 
   // Properties
   const properties = [
-    ['p1', 'Al Haitham Rest House', 'Rest House', 12, 850, 120, 50, 'Al Haitham Rest House'],
+    ['p1', 'Reef Villa', 'Villa', 12, 850, 120, 50, 'Reef Villa'],
     ['p2', 'Al-Bustan Villa', 'Deluxe Villa', 8, 620, 180, 75, 'Exclusive beachfront villa'],
     ['p3', 'Royal Suite A', 'Royal Suite', 4, 320, 250, 100, 'Opulent royal suite with private pool'],
     ['p4', 'Coast View Chalet', 'Ocean Chalet', 6, 480, 150, 60, 'Stunning ocean view chalet'],

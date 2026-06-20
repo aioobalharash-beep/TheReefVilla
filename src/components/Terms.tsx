@@ -85,7 +85,7 @@ export const Terms: React.FC = () => {
       </div>
 
       <p className="text-[10px] text-center text-primary-navy/30 font-bold uppercase tracking-widest">
-        {isAr ? 'استراحة الهيثم — سلطنة عمان' : 'Al Haitham Rest House — Oman'}
+        {isAr ? 'ريف فيلا — سلطنة عمان' : 'Reef Villa — Oman'}
       </p>
     </div>
   );

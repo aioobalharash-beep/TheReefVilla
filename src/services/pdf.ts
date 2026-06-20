@@ -124,8 +124,8 @@ async function withHiddenDiv(
 // Reusable style constants
 // ---------------------------------------------------------------------------
 
-const NAVY = '#1E3A8A';
-const GOLD = '#3B82F6';
+const NAVY = '#3D3020';
+const GOLD = '#A08B4A';
 const LIGHT_BORDER = '#e8e8e8';
 
 // ---------------------------------------------------------------------------
@@ -149,8 +149,8 @@ function buildInvoiceHtml(
     year: 'numeric',
   });
 
-  const companyName = (invoice.chaletName || (isAr ? 'استراحة الهيثم' : 'Al Haitham Rest House')).toUpperCase();
-  const location = isAr ? 'مسقط، سلطنة عُمان' : 'Muscat, Sultanate of Oman';
+  const companyName = (invoice.chaletName || (isAr ? 'ريف فيلا' : 'Reef Villa')).toUpperCase();
+  const location = isAr ? 'طريق نزوى عبري، بهلا' : 'Nizwa Ibri street, Bahla';
   const regInfo = invoice.licenseNumber
     ? (isAr ? `ترخيص سياحي: ${invoice.licenseNumber}` : `Tourism License: ${invoice.licenseNumber}`)
     : '';
@@ -164,7 +164,7 @@ function buildInvoiceHtml(
   const grandTotalLabel = isAr ? 'الإجمالي العام' : 'Grand Total';
 
   // Translate property name for Arabic
-  const localizedProperty = isAr ? 'استراحة الهيثم' : invoice.room_type;
+  const localizedProperty = isAr ? 'ريف فيلا' : invoice.room_type;
 
   const fmtAmount = (n: number): string => {
     const val = n.toFixed(2);
@@ -215,8 +215,8 @@ function buildInvoiceHtml(
       : logoPath || '';
 
   const footerText = isAr
-    ? 'استراحة الهيثم  |  سلطنة عُمان  |  هذه فاتورة صادرة آلياً ولا تتطلب توقيعاً'
-    : 'Al Haitham Rest House  |  Sultanate of Oman  |  This is a computer-generated invoice.';
+    ? 'ريف فيلا  |  سلطنة عُمان  |  هذه فاتورة صادرة آلياً ولا تتطلب توقيعاً'
+    : 'Reef Villa  |  Sultanate of Oman  |  This is a computer-generated invoice.';
 
   // Build items HTML
   let itemsHtml = '';
@@ -319,8 +319,8 @@ function buildTermsHtml(
   const dir = isAr ? 'rtl' : 'ltr';
   const textStart = isAr ? 'text-right' : 'text-left';
 
-  const companyName = isAr ? 'استراحة الهيثم' : 'AL HAITHAM REST HOUSE';
-  const location = isAr ? 'مسقط، سلطنة عُمان' : 'Muscat, Sultanate of Oman';
+  const companyName = isAr ? 'ريف فيلا' : 'AL HAITHAM REST HOUSE';
+  const location = isAr ? 'طريق نزوى عبري، بهلا' : 'Nizwa Ibri street, Bahla';
   const title = isAr ? 'شروط الإقامة' : 'Terms of Stay';
 
   const dateLocale = isAr ? 'ar-OM' : 'en-GB';
@@ -332,8 +332,8 @@ function buildTermsHtml(
   });
 
   const footerText = isAr
-    ? 'استراحة الهيثم  |  سلطنة عُمان  |  هذه الوثيقة لأغراض إعلامية فقط.'
-    : 'Al Haitham Rest House  |  Sultanate of Oman  |  This document is for informational purposes.';
+    ? 'ريف فيلا  |  سلطنة عُمان  |  هذه الوثيقة لأغراض إعلامية فقط.'
+    : 'Reef Villa  |  Sultanate of Oman  |  This document is for informational purposes.';
 
   // Convert newlines to paragraphs
   const bodyHtml = termsText
@@ -385,7 +385,7 @@ export async function generateInvoicePDF(
 export async function downloadInvoicePDF(invoice: InvoiceData, lang = 'en') {
   try {
     const doc = await generateInvoicePDF(invoice, lang);
-    doc.save(`Al-Malak-Chalet-Invoice-${invoice.id.slice(0, 8).toUpperCase()}.pdf`);
+    doc.save(`Reef-Villa-Invoice-${invoice.id.slice(0, 8).toUpperCase()}.pdf`);
   } catch (err) {
     console.error('[PDF] Failed to download invoice PDF:', err);
     alert(
@@ -404,7 +404,7 @@ export async function downloadTermsPDF(termsText: string, lang = 'en') {
     doc.save(
       lang === 'ar'
         ? 'شاليه-وودي-شروط-الإقامة.pdf'
-        : 'Al-Malak-Chalet-Terms-of-Stay.pdf',
+        : 'Reef-Villa-Terms-of-Stay.pdf',
     );
   } catch (err) {
     console.error('[PDF] Failed to download terms PDF:', err);

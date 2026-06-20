@@ -1,7 +1,7 @@
 rules_version = '2';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Al Haitham Rest House — Firestore Security Rules
+// Reef Villa — Firestore Security Rules
 //
 // Paste into Firebase Console → Firestore Database → Rules → Publish.
 // Or deploy via CLI:  firebase deploy --only firestore:rules

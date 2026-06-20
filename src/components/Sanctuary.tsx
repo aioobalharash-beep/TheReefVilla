@@ -95,12 +95,12 @@ interface PropertyDetails {
 }
 
 const DEFAULTS: PropertyDetails = {
-  name: 'Al Haitham Rest House',
+  name: 'Reef Villa',
   capacity: 12,
   area_sqm: 850,
   nightly_rate: 120,
   headline: 'Curated Excellence',
-  description: 'Nestled in the heart of the Omani landscape, Al Haitham Rest House offers an unparalleled blend of modern comfort and heritage-inspired architecture. Every corner of this estate has been curated to provide a seamless flow between indoor relaxation and outdoor majesty.',
+  description: 'Nestled in the heart of the Omani landscape, Reef Villa offers an unparalleled blend of modern comfort and heritage-inspired architecture. Every corner of this estate has been curated to provide a seamless flow between indoor relaxation and outdoor majesty.',
   featureSections: [],
   gallery: [
     { url: 'https://picsum.photos/seed/oman-bedroom-1/800/1000', label: 'Master Suite: Serene Sands' },
@@ -160,7 +160,7 @@ const Footer = React.memo<FooterProps>(({ chaletName, footerText, whatsappNumber
           </a>
         )}
         <a
-          href={getClientConfig().social.instagram || 'https://www.instagram.com/estriahat_alhaitham/'}
+          href={getClientConfig().social.instagram || 'https://www.instagram.com/reef.villa.om/'}
           target="_blank"
           rel="noopener noreferrer"
           aria-label="Instagram"

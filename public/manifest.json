@@ -1,11 +1,11 @@
 {
-  "name": "Al Haitham Rest House",
-  "short_name": "Al Haitham",
-  "description": "Rest house booking and management",
+  "name": "Reef Villa",
+  "short_name": "Reef Villa",
+  "description": "Villa booking and management",
   "start_url": "/",
   "display": "standalone",
-  "theme_color": "#1E3A8A",
-  "background_color": "#F1F5F9",
+  "theme_color": "#3D3020",
+  "background_color": "#F2E8DF",
   "orientation": "portrait-primary",
   "icons": [
     {

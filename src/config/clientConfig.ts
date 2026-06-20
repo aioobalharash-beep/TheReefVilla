@@ -55,24 +55,24 @@ export interface ClientConfig {
 }
 
 export const CLIENT_CONFIG: ClientConfig = {
-  chaletName: 'Al Haitham Rest House',
+  chaletName: 'Reef Villa',
   logoPath: '/assets/brand/logo.png',
   theme: {
-    primary: '#1E3A8A',
-    secondary: '#3B82F6',
-    background: '#F1F5F9',
+    primary: '#3D3020',
+    secondary: '#A08B4A',
+    background: '#F2E8DF',
   },
   admin: {
     email: 'aioob.alharash@gmail.com',
     additionalEmails: [],
-    name: 'Al Haitham Rest House Admin',
+    name: 'Reef Villa Admin',
   },
   social: {
-    whatsapp: '96899416579',
-    instagram: 'https://www.instagram.com/estriahat_alhaitham/',
+    whatsapp: '96895649862',
+    instagram: 'https://www.instagram.com/reef.villa.om/',
   },
   location: {
-    mapsUrl: 'https://maps.google.com?q=23.0931530,57.3378830&hl=ar-OM&gl=om&entry=gps&lucs=s2se',
+    mapsUrl: 'https://maps.app.goo.gl/9mdLjb423SHqQaaY7',
   },
   features: {
     hasIdUpload: false,

@@ -156,7 +156,7 @@ export const Calendar: React.FC = () => {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
   const lang = i18n.language;
-  const brandName = lang === 'ar' ? 'استراحة الهيثم' : getClientConfig().chaletName;
+  const brandName = lang === 'ar' ? 'ريف فيلا' : getClientConfig().chaletName;
   const [bookings, setBookings] = useState<RealtimeBooking[]>([]);
   // Externally-synced blocks (Booking.com / Massarah / …) pulled by the
   // iCal sync endpoint. Treated as confirmed bookings on the calendar.
