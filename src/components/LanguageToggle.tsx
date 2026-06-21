@@ -8,7 +8,7 @@ export const LanguageToggle: React.FC<{ variant?: 'light' | 'dark' }> = ({ varia
     <button
       onClick={toggleLanguage}
       className={`
-        relative flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold tracking-wide
+        relative flex items-center gap-1 px-2.5 py-1.5 rounded-none text-[11px] font-bold tracking-wide
         whitespace-nowrap flex-shrink-0
         transition-all active:scale-95 select-none
         ${variant === 'dark'

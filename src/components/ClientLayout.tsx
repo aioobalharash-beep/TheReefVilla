@@ -44,7 +44,7 @@ export const ClientLayout: React.FC = () => {
           {isAdmin && (
             <button
               onClick={() => navigate('/admin')}
-              className="p-2 rounded-full hover:bg-primary-navy/5 text-primary-navy/40 transition-colors"
+              className="p-2 rounded-none hover:bg-primary-navy/5 text-primary-navy/40 transition-colors"
               title={t('nav.adminPortal')}
             >
               <ShieldCheck size={20} />
@@ -53,7 +53,7 @@ export const ClientLayout: React.FC = () => {
           {user ? (
             <button
               onClick={handleLogout}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl hover:bg-primary-navy/5 text-primary-navy transition-colors text-xs font-bold uppercase tracking-wider"
+              className="flex items-center gap-2 px-4 py-2 rounded-none hover:bg-primary-navy/5 text-primary-navy transition-colors text-xs font-bold uppercase tracking-wider"
               title={t('nav.logout')}
             >
               <LogOut size={18} />
@@ -62,7 +62,7 @@ export const ClientLayout: React.FC = () => {
           ) : (
             <button
               onClick={() => navigate('/login')}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary-navy text-white text-xs font-bold uppercase tracking-wider hover:opacity-90 transition-opacity"
+              className="flex items-center gap-2 px-4 py-2 rounded-none bg-primary-navy text-white text-xs font-bold uppercase tracking-wider hover:opacity-90 transition-opacity"
             >
               <LogIn size={18} />
               <span className="hidden sm:inline">{t('nav.login')}</span>
@@ -80,7 +80,7 @@ export const ClientLayout: React.FC = () => {
       </main>
 
       {/* Client Bottom Nav */}
-      <nav className="fixed bottom-0 inset-x-0 z-50 flex justify-around items-center h-20 pb-safe px-12 bg-pearl-white border-t border-primary-navy/5 shadow-[0px_-10px_40px_rgba(1,31,54,0.06)] rounded-t-[20px]">
+      <nav className="fixed bottom-0 inset-x-0 z-50 flex justify-around items-center h-20 pb-safe px-12 bg-pearl-white border-t border-primary-navy/5 shadow-[0px_-10px_40px_rgba(1,31,54,0.06)]">
         {navItems.map((item) => (
           <button
             key={item.path}

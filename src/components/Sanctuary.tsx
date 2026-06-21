@@ -224,11 +224,10 @@ export const Sanctuary: React.FC = () => {
         <div className="px-6 mt-8 space-y-4">
           <div className="h-4 bg-primary-navy/5 rounded w-32" />
           <div className="h-8 bg-primary-navy/5 rounded w-64" />
-          <div className="flex gap-4 overflow-hidden">
+          <div className="flex md:grid md:grid-cols-3 gap-0 overflow-hidden">
             {[1, 2, 3].map(i => (
-              <div key={i} className="flex-none w-[85vw] md:w-[600px]">
-                <div className="aspect-[4/5] md:aspect-video rounded-[20px] bg-primary-navy/5" />
-                <div className="mt-3 h-3.5 bg-primary-navy/5 rounded w-40 mx-1" />
+              <div key={i} className="flex-none w-full md:w-auto">
+                <div className="aspect-[4/3] bg-primary-navy/5" />
               </div>
             ))}
           </div>
@@ -240,7 +239,7 @@ export const Sanctuary: React.FC = () => {
         </div>
         <div className="px-6 grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[1, 2, 3, 4].map(i => (
-            <div key={i} className="h-full bg-white p-6 rounded-2xl border border-primary-navy/5 shadow-sm space-y-4">
+            <div key={i} className="h-full bg-white p-6 border border-primary-navy/5 shadow-sm space-y-4">
               <div className="h-5 bg-primary-navy/5 rounded w-24" />
               <div className="space-y-2.5">
                 <div className="h-4 bg-primary-navy/5 rounded w-full" />
@@ -256,31 +255,33 @@ export const Sanctuary: React.FC = () => {
 
   return (
     <div className="space-y-8 sm:space-y-12 pb-12">
-      {/* Hero Gallery */}
-      <section className="px-4 sm:px-6 mt-6 sm:mt-8">
-        <div className="flex justify-between items-end mb-4 sm:mb-6">
+      {/* Hero Gallery — edge-to-edge editorial strip */}
+      <section className="mt-6 sm:mt-8">
+        <div className="px-4 sm:px-6 flex justify-between items-end mb-4 sm:mb-6">
           <div>
             <span className="text-secondary-gold font-bold tracking-widest text-[10px] uppercase block mb-1">{t('sanctuary.estatePreview')}</span>
             <h2 className="font-headline text-2xl sm:text-3xl font-bold text-primary-navy">{bl(data.name, lang)}</h2>
           </div>
         </div>
 
-        <div className="flex overflow-x-auto snap-x snap-mandatory no-scrollbar gap-4 pb-4">
+        {/* Mobile: full-bleed snap carousel (100vw slides, zero gaps).
+            Desktop: flush 3-up grid, seamlessly stitched (gap-0). */}
+        <div className="flex md:grid md:grid-cols-3 overflow-x-auto md:overflow-visible snap-x snap-mandatory md:snap-none no-scrollbar gap-0">
           {data.gallery.map((img, i) => (
             <motion.div
               key={i}
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.1 }}
-              className="flex-none w-[85vw] md:w-[600px] snap-center"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: i * 0.08 }}
+              className="flex-none w-full md:w-auto snap-center"
             >
               <OptimizedImage
                 src={img.url}
                 alt={img.label || ''}
-                className="aspect-[4/5] md:aspect-video rounded-[20px] bg-primary-navy/5 shadow-sm"
+                className="w-full aspect-[4/3] bg-primary-navy/5"
               />
               {img.label && img.label.trim() !== '' && (
-                <p className="mt-3 font-bold text-primary-navy/80 text-sm px-1">{img.label}</p>
+                <p className="mt-2 font-bold text-primary-navy/80 text-sm px-4 sm:px-6 md:px-2">{img.label}</p>
               )}
             </motion.div>
           ))}
@@ -309,7 +310,7 @@ export const Sanctuary: React.FC = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.05 }}
                   dir={lang === 'ar' ? 'rtl' : 'ltr'}
-                  className="h-full bg-white p-4 sm:p-6 rounded-2xl border border-primary-navy/5 shadow-sm"
+                  className="h-full bg-white p-4 sm:p-6 border border-primary-navy/5 shadow-sm"
                 >
                   <h4 className="font-headline text-lg font-bold text-secondary-gold mb-4">
                     {title}
@@ -349,7 +350,7 @@ export const Sanctuary: React.FC = () => {
       {/* Floating Book Now */}
       <button
         onClick={() => navigate('/booking')}
-        className="fixed bottom-[104px] end-[24px] z-[60] flex items-center gap-2 bg-secondary-gold text-white px-5 sm:px-6 py-3 sm:py-3.5 rounded-[20px] shadow-[0px_10px_25px_rgba(59,130,246,0.35)] hover:scale-105 transition-transform active:scale-95"
+        className="fixed bottom-[104px] end-[24px] z-[60] flex items-center gap-2 bg-secondary-gold text-white px-5 sm:px-6 py-3 sm:py-3.5 rounded-none shadow-[0px_10px_25px_rgba(61,48,32,0.30)] hover:scale-105 transition-transform active:scale-95"
       >
         <CalendarIcon size={20} />
         <span className="font-bold text-sm tracking-wide">{t('sanctuary.bookNow')}</span>
