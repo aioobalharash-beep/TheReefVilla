@@ -13,6 +13,12 @@ export interface DayUseSlot {
   thursday_rate: number;
   friday_rate: number;
   saturday_rate: number;
+  /**
+   * Weekdays (0=Sun … 6=Sat) on which this slot is NOT bookable for day use.
+   * Lets the owner restrict day use to e.g. Sun–Thu only. Undefined/empty =
+   * available every day.
+   */
+  disabled_days?: number[];
 }
 
 export interface PricingSettings {
@@ -125,6 +131,11 @@ export function getSlotRateForDay(dow: number, slot: DayUseSlot): number {
     case 6: return slot.saturday_rate;
     default: return slot.sunday_rate;
   }
+}
+
+/** Whether a slot can be booked on a given day-of-week (0=Sun … 6=Sat). */
+export function isSlotAvailableOnDay(dow: number, slot: DayUseSlot): boolean {
+  return !(slot.disabled_days || []).includes(dow);
 }
 
 /** Get the nightly rate for a given day-of-week (0=Sun … 6=Sat) */

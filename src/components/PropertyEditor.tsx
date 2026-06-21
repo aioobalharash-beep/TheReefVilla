@@ -372,6 +372,16 @@ const PropertyEditorComponent: React.FC = () => {
   const updateSlot = (id: string, patch: Partial<DayUseSlot>) =>
     setPricing({ day_use_slots: (form.pricing.day_use_slots || []).map(s => s.id === id ? { ...s, ...patch } : s) });
 
+  // Toggle whether a slot is bookable on a given weekday (0=Sun … 6=Sat).
+  // Removed days are stored in disabled_days and blocked on the booking calendar.
+  const setSlotDayEnabled = (slot: DayUseSlot, dow: number, enabled: boolean) => {
+    const current = slot.disabled_days || [];
+    const next = enabled
+      ? current.filter(d => d !== dow)
+      : Array.from(new Set([...current, dow]));
+    updateSlot(slot.id, { disabled_days: next });
+  };
+
   if (loading) return <div className="p-8 animate-pulse"><div className="h-96 bg-primary-navy/5 rounded-xl" /></div>;
 
   return (
@@ -617,18 +627,42 @@ const PropertyEditorComponent: React.FC = () => {
             </div>
             <div className="overflow-x-auto -mx-1 px-1">
               <div className="grid grid-cols-7 gap-2 min-w-[320px]">
-                {(['sunday_rate', 'monday_rate', 'tuesday_rate', 'wednesday_rate', 'thursday_rate', 'friday_rate', 'saturday_rate'] as (keyof DayUseSlot)[]).map((key, i) => (
-                  <div key={key} className="space-y-1">
-                    <label className="text-[8px] font-bold uppercase text-primary-navy/30 text-center block">{[t('propertyEditor.daySun'), t('propertyEditor.dayMon'), t('propertyEditor.dayTue'), t('propertyEditor.dayWed'), t('propertyEditor.dayThu'), t('propertyEditor.dayFri'), t('propertyEditor.daySat')][i]}</label>
-                    <input
-                      type="number"
-                      dir={dir}
-                      value={slot[key] as number}
-                      onChange={(e) => updateSlot(slot.id, { [key]: parseInt(e.target.value) || 0 })}
-                      className="w-full bg-white border border-primary-navy/10 rounded-lg py-2 px-1 text-xs font-medium text-center focus:ring-1 focus:ring-secondary-gold/50 outline-none"
-                    />
-                  </div>
-                ))}
+                {(['sunday_rate', 'monday_rate', 'tuesday_rate', 'wednesday_rate', 'thursday_rate', 'friday_rate', 'saturday_rate'] as (keyof DayUseSlot)[]).map((key, i) => {
+                  const dayDisabled = (slot.disabled_days || []).includes(i);
+                  return (
+                    <div key={key} className="space-y-1">
+                      <label className="text-[8px] font-bold uppercase text-primary-navy/30 text-center block">{[t('propertyEditor.daySun'), t('propertyEditor.dayMon'), t('propertyEditor.dayTue'), t('propertyEditor.dayWed'), t('propertyEditor.dayThu'), t('propertyEditor.dayFri'), t('propertyEditor.daySat')][i]}</label>
+                      {dayDisabled ? (
+                        <button
+                          type="button"
+                          onClick={() => setSlotDayEnabled(slot, i, true)}
+                          title={t('propertyEditor.restoreDay')}
+                          className="w-full h-[34px] bg-primary-navy/[0.03] border border-dashed border-primary-navy/15 rounded-lg flex items-center justify-center text-primary-navy/25 hover:text-secondary-gold hover:border-secondary-gold/40 transition-colors"
+                        >
+                          <Plus size={12} />
+                        </button>
+                      ) : (
+                        <>
+                          <input
+                            type="number"
+                            dir={dir}
+                            value={slot[key] as number}
+                            onChange={(e) => updateSlot(slot.id, { [key]: parseInt(e.target.value) || 0 })}
+                            className="w-full bg-white border border-primary-navy/10 rounded-lg py-2 px-1 text-xs font-medium text-center focus:ring-1 focus:ring-secondary-gold/50 outline-none"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setSlotDayEnabled(slot, i, false)}
+                            title={t('propertyEditor.removeDay')}
+                            className="w-full flex items-center justify-center text-primary-navy/20 hover:text-red-500 transition-colors"
+                          >
+                            <X size={11} />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>

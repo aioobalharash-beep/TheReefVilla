@@ -246,9 +246,11 @@ export const Booking: React.FC = () => {
 
   // Compute which slots remain bookable for a date, accounting for time overlap
   const getAvailableSlotsForDate = (dateStr: string): DayUseSlot[] => {
+    const dow = parseLocalDate(dateStr).getDay();
     const taken = bookedSlots.get(dateStr) || [];
-    if (taken.length === 0) return dayUseSlots;
     return dayUseSlots.filter(slot => {
+      // Owner-removed weekday (e.g. day use disabled on Fri/Sat).
+      if ((slot.disabled_days || []).includes(dow)) return false;
       if (taken.includes(slot.id)) return false;
       // Check time overlap: if ANY booked slot's hours overlap this slot, block it
       for (const takenId of taken) {
@@ -272,9 +274,18 @@ export const Booking: React.FC = () => {
   const isDayBooked = (day: number): boolean => {
     const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     if (unavailableDates.has(dateStr)) return true;
-    // If slots exist, check whether any slot is still available (overlap-aware)
     if (dayUseSlots.length > 0) {
-      if (getAvailableSlotsForDate(dateStr).length === 0) return true;
+      const dow = parseLocalDate(dateStr).getDay();
+      const offeredSlots = dayUseSlots.filter(s => !(s.disabled_days || []).includes(dow));
+      if (offeredSlots.length === 0) {
+        // Owner offers NO day use on this weekday (e.g. Fri/Sat removed) — block
+        // it only when picking day use; overnight stays remain available.
+        if (stayType === 'day_use') return true;
+      } else if (getAvailableSlotsForDate(dateStr).length === 0) {
+        // Day use is offered but every slot is already booked → the property is
+        // occupied that day, so block it for all stay types (prevents overlap).
+        return true;
+      }
     }
     return false;
   };
