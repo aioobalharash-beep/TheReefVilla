@@ -17,6 +17,7 @@ interface DayUseSlotRates {
   thursday_rate?: number;
   friday_rate?: number;
   saturday_rate?: number;
+  disabled_days?: number[];
 }
 
 interface PricingSettings {
@@ -35,6 +36,11 @@ interface PricingSettings {
   discount?: { enabled: boolean; type: 'percent' | 'flat'; value: number; start_date: string; end_date: string };
 }
 
+const SLOT_DAY_KEYS = [
+  'sunday_rate', 'monday_rate', 'tuesday_rate', 'wednesday_rate',
+  'thursday_rate', 'friday_rate', 'saturday_rate',
+] as const;
+
 const getMinPrice = (pricing: PricingSettings | undefined, fallback: number): number => {
   if (!pricing) return fallback;
   const nightRates = [
@@ -43,15 +49,21 @@ const getMinPrice = (pricing: PricingSettings | undefined, fallback: number): nu
     pricing.saturday_rate,
     pricing.weekday_rate, // legacy
   ];
-  const slotRates = (pricing.day_use_slots || []).flatMap(slot => [
-    slot.sunday_rate, slot.monday_rate, slot.tuesday_rate,
-    slot.wednesday_rate, slot.thursday_rate, slot.friday_rate, slot.saturday_rate,
-  ]);
+  // Day-use floor: when slots exist, only their bookable (non-removed) weekday
+  // rates count — the legacy flat day_use_rate is a fallback that's never
+  // charged once slots are configured, so it must not drag the "From" price down.
+  const slots = pricing.day_use_slots || [];
+  const slotRates = slots.flatMap(slot =>
+    SLOT_DAY_KEYS
+      .map((key, dow) => ({ rate: slot[key], dow }))
+      .filter(({ dow }) => !(slot.disabled_days || []).includes(dow))
+      .map(({ rate }) => rate),
+  );
+  const dayUseRates = slots.length > 0 ? slotRates : [pricing.day_use_rate];
   const specialPrices = (pricing.special_dates || []).flatMap(s => [s.day_use_price, s.night_stay_price, s.price]);
   const allRates = [
     ...nightRates,
-    pricing.day_use_rate,
-    ...slotRates,
+    ...dayUseRates,
     pricing.event_rate,
     ...specialPrices,
   ].filter((r): r is number => typeof r === 'number' && r > 0);
@@ -298,12 +310,20 @@ export const Sanctuary: React.FC = () => {
         </div>
       </section>
 
-      {/* Resort Guide — Categorized Feature Tiles */}
+      {/* Resort Guide — Categorized Feature Tiles. Column count tracks the
+          number of sections so a lone section spans the full width (with its
+          items flowing into multiple columns) instead of stranding on the left. */}
       {data.featureSections && data.featureSections.length > 0 && (
         <section className="px-4 sm:px-6">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 items-stretch">
+          <div className={`grid gap-3 sm:gap-4 items-stretch ${
+            data.featureSections.length === 1 ? 'grid-cols-1'
+              : data.featureSections.length === 2 ? 'grid-cols-1 sm:grid-cols-2'
+              : data.featureSections.length === 3 ? 'grid-cols-2 lg:grid-cols-3'
+              : 'grid-cols-2 lg:grid-cols-4'
+          }`}>
             {data.featureSections.map((section, i) => {
               const title = lang === 'ar' ? (section.titleAr || section.titleEn) : (section.titleEn || section.titleAr);
+              const single = data.featureSections.length === 1;
               return (
                 <motion.div
                   key={i}
@@ -316,11 +336,11 @@ export const Sanctuary: React.FC = () => {
                   <h4 className="font-headline text-lg font-bold text-secondary-gold mb-4">
                     {title}
                   </h4>
-                  <ul className="space-y-2.5">
+                  <ul className={single ? 'columns-1 sm:columns-2 lg:columns-3 gap-x-10' : 'space-y-2.5'}>
                     {section.items.map((item, j) => {
                       const label = lang === 'ar' ? (item.ar || item.en) : (item.en || item.ar);
                       return (
-                        <li key={j} className="flex items-start gap-3">
+                        <li key={j} className={`flex items-start gap-3 ${single ? 'break-inside-avoid mb-2.5' : ''}`}>
                           <Check size={14} strokeWidth={2.5} className="text-secondary-gold shrink-0 mt-[5px]" />
                           <span className="text-base font-medium text-primary-navy/85 leading-relaxed">
                             {label}
