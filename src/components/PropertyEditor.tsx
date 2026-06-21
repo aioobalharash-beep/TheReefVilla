@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTranslation } from 'react-i18next';
 import { OptimizedImage } from './OptimizedImage';
-import { ArrowLeft, ArrowRight, Upload, X, Plus, Save, Check, Calendar, Tag, Percent, Landmark, Sun, Clock, FileText, Languages, Trash2, LayoutGrid } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Upload, X, Plus, Save, Check, Calendar, Tag, Percent, Landmark, Sun, Clock, FileText, Languages, Trash2, LayoutGrid, GripVertical, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/src/lib/utils';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../services/firebase';
@@ -133,6 +133,9 @@ const PropertyEditorComponent: React.FC = () => {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [uploadError, setUploadError] = useState('');
+  // Gallery drag-to-reorder: index being dragged + the tile it's hovering over.
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [newLabel, setNewLabel] = useState('');
   const [newItemInputs, setNewItemInputs] = useState<Record<number, { en: string; ar: string }>>({});
 
@@ -235,6 +238,20 @@ const PropertyEditorComponent: React.FC = () => {
   };
 
   const removeImage = (i: number) => setForm(prev => ({ ...prev, gallery: prev.gallery.filter((_, j) => j !== i) }));
+
+  // Reorder gallery images. `from`/`to` are indices in form.gallery; the moved
+  // item is spliced out and re-inserted, shifting the rest. Used by both
+  // drag-and-drop (desktop) and the ‹ › buttons (touch / fallback).
+  const moveImage = (from: number, to: number) => {
+    if (from === to || from < 0 || to < 0) return;
+    setForm(prev => {
+      const next = [...prev.gallery];
+      if (from >= next.length || to >= next.length) return prev;
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+      return { ...prev, gallery: next };
+    });
+  };
 
   const addQuickFact = () => {
     const label = newFactLabel.trim();
@@ -370,16 +387,59 @@ const PropertyEditorComponent: React.FC = () => {
 
       {/* Media Gallery */}
       <section className="bg-white rounded-[20px] p-4 sm:p-6 border border-primary-navy/5 shadow-sm space-y-4">
-        <h3 className="text-sm font-bold text-primary-navy uppercase tracking-wide">{t('propertyEditor.mediaGallery')}</h3>
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="text-sm font-bold text-primary-navy uppercase tracking-wide">{t('propertyEditor.mediaGallery')}</h3>
+          {form.gallery.length > 1 && (
+            <span className="text-[10px] font-medium text-primary-navy/40 flex items-center gap-1">
+              <GripVertical size={12} /> {t('propertyEditor.dragToReorder')}
+            </span>
+          )}
+        </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {form.gallery.map((img, i) => (
-            <div key={i} className="relative group aspect-[4/5] rounded-xl overflow-hidden bg-primary-navy/5">
-              <OptimizedImage src={img.url} alt={img.label || ''} className="w-full h-full" />
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center">
-                <button onClick={() => removeImage(i)} className="opacity-0 group-hover:opacity-100 transition-opacity p-2 bg-white rounded-full shadow-lg"><X size={14} className="text-red-500" /></button>
+            <div
+              key={img.url}
+              draggable
+              onDragStart={(e) => { setDragIndex(i); e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', String(i)); } catch { /* noop */ } }}
+              onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; if (dragOverIndex !== i) setDragOverIndex(i); }}
+              onDrop={(e) => { e.preventDefault(); if (dragIndex !== null) moveImage(dragIndex, i); setDragIndex(null); setDragOverIndex(null); }}
+              onDragEnd={() => { setDragIndex(null); setDragOverIndex(null); }}
+              className={cn(
+                "relative group aspect-[4/5] rounded-xl overflow-hidden bg-primary-navy/5 cursor-grab active:cursor-grabbing transition-all",
+                dragIndex === i && "opacity-40",
+                dragOverIndex === i && dragIndex !== null && dragIndex !== i && "ring-2 ring-secondary-gold ring-offset-2",
+              )}
+            >
+              <OptimizedImage src={img.url} alt={img.label || ''} className="w-full h-full pointer-events-none" />
+
+              {/* Order badge + drag grip */}
+              <div className="absolute top-1.5 start-1.5 w-5 h-5 rounded-full bg-primary-navy/70 text-white text-[10px] font-bold flex items-center justify-center pointer-events-none">{i + 1}</div>
+              <div className="absolute top-1.5 end-1.5 opacity-0 group-hover:opacity-100 transition-opacity text-white/80 pointer-events-none"><GripVertical size={14} /></div>
+
+              {/* Controls: reorder ‹ ›, remove */}
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center gap-1.5">
+                <button
+                  type="button"
+                  disabled={i === 0}
+                  onClick={() => moveImage(i, i - 1)}
+                  aria-label={t('propertyEditor.moveEarlier')}
+                  className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 bg-white rounded-full shadow-lg disabled:opacity-0"
+                >
+                  {isRTL ? <ChevronRight size={14} className="text-primary-navy" /> : <ChevronLeft size={14} className="text-primary-navy" />}
+                </button>
+                <button onClick={() => removeImage(i)} aria-label={t('propertyEditor.removeItem')} className="opacity-0 group-hover:opacity-100 transition-opacity p-2 bg-white rounded-full shadow-lg"><X size={14} className="text-red-500" /></button>
+                <button
+                  type="button"
+                  disabled={i === form.gallery.length - 1}
+                  onClick={() => moveImage(i, i + 1)}
+                  aria-label={t('propertyEditor.moveLater')}
+                  className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 bg-white rounded-full shadow-lg disabled:opacity-0"
+                >
+                  {isRTL ? <ChevronLeft size={14} className="text-primary-navy" /> : <ChevronRight size={14} className="text-primary-navy" />}
+                </button>
               </div>
               {img.label && img.label.trim() !== '' && (
-                <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent p-3">
+                <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent p-3 pointer-events-none">
                   <p className="text-white text-xs font-bold truncate">{img.label}</p>
                 </div>
               )}
