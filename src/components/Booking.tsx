@@ -1,12 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronLeft, ChevronRight, ShieldCheck, AlertCircle, ArrowLeft, Upload, CreditCard, Building2, Check, FileText, X, Download, Users, Info } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ShieldCheck, AlertCircle, ArrowLeft, Upload, CreditCard, Building2, Check, FileText, X, Users, Info } from 'lucide-react';
 import { maxGuestsFor, clampGuestCount } from '../config/occupancy';
 import { cn } from '@/src/lib/utils';
 import { propertiesApi, bookingsApi } from '../services/api';
 import { createThawaniCheckout } from '../services/thawani';
-import { downloadTermsPDF } from '../services/pdf';
 import { uploadToCloudinary } from '../services/cloudinary';
 import { sendWhatsAppInvoice } from './Invoices';
 import { collection, query, orderBy, onSnapshot, doc, getDoc } from 'firebase/firestore';
@@ -1711,13 +1710,6 @@ export const Booking: React.FC = () => {
                 >
                   <Check size={16} />
                   {t('booking.iAccept')}
-                </button>
-                <button
-                  onClick={async () => downloadTermsPDF(termsOfStay, lang)}
-                  className="w-full border-2 border-primary-navy/10 text-primary-navy/60 py-3.5 rounded-[16px] font-bold text-[10px] uppercase tracking-widest active:scale-[0.98] transition-all flex items-center justify-center gap-2 hover:border-primary-navy/20 hover:text-primary-navy"
-                >
-                  <Download size={14} />
-                  {t('booking.downloadTerms')}
                 </button>
               </div>
             </motion.div>
