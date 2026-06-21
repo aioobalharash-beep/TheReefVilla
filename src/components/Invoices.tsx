@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { FileText, Receipt, MessageCircle, X, Edit3, Paperclip, IdCard, AlertCircle, Home, Printer, Users, Moon, Sun } from 'lucide-react';
+import { FileText, Receipt, X, Paperclip, IdCard, AlertCircle, Home, Printer, Users, Moon, Sun } from 'lucide-react';
 import { cn } from '@/src/lib/utils';
 import { collection, query, orderBy, onSnapshot, doc, getDoc, setDoc, limit } from 'firebase/firestore';
 import { db } from '../services/firebase';
@@ -209,51 +209,6 @@ export const Invoices: React.FC = () => {
         <p className="text-primary-navy/50 text-xs font-medium mt-1">{nonCancelledBookings.length} total invoices generated</p>
       </div>
 
-      {/* WhatsApp Template Editor */}
-      <div className="bg-white rounded-[20px] p-6 border border-primary-navy/5 shadow-sm space-y-4">
-        <button
-          onClick={() => setShowTemplateEditor(!showTemplateEditor)}
-          className="flex items-center gap-2 text-sm font-bold text-primary-navy hover:text-secondary-gold transition-colors"
-        >
-          <Edit3 size={16} />
-          Edit WhatsApp Template
-        </button>
-
-        {showTemplateEditor && (
-          <div className="space-y-3">
-            <textarea
-              value={whatsappTemplate}
-              onChange={(e) => setWhatsappTemplate(e.target.value)}
-              rows={10}
-              className="w-full border border-primary-navy/10 rounded-xl p-4 text-sm text-primary-navy font-mono resize-y focus:outline-none focus:ring-2 focus:ring-secondary-gold/30 focus:border-secondary-gold/50"
-            />
-            <div className="flex flex-wrap gap-2">
-              {['{{guest_name}}', '{{booking_id}}', '{{stay_amount}}', '{{deposit_line}}', '{{total_amount}}', '{{receipt_line}}'].map((ph) => (
-                <span key={ph} className="text-[10px] font-mono bg-primary-navy/5 text-primary-navy/60 px-2 py-1 rounded-md">{ph}</span>
-              ))}
-            </div>
-            <p className="text-[10px] text-primary-navy/40 font-medium">
-              Use the placeholders above in your template. They will be replaced with actual booking data when sending.
-            </p>
-            <button
-              onClick={async () => {
-                setTemplateSaving(true);
-                try {
-                  await setDoc(doc(db, 'settings', 'notifications'), { whatsappTemplate }, { merge: true });
-                } catch (err) {
-                  console.error('Failed to save template:', err);
-                }
-                setTemplateSaving(false);
-              }}
-              disabled={templateSaving}
-              className="px-6 py-2.5 bg-primary-navy text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-primary-navy/90 active:scale-[0.98] transition-all disabled:opacity-50"
-            >
-              {templateSaving ? 'Saving...' : 'Save Template'}
-            </button>
-          </div>
-        )}
-      </div>
-
       {/* SECTION 1: Latest Booking Invoices */}
       <section className="space-y-4">
         <div className="px-1">
@@ -389,13 +344,6 @@ export const Invoices: React.FC = () => {
                       className="w-9 h-9 flex items-center justify-center rounded-lg border border-primary-navy/10 text-primary-navy/50 hover:text-primary-navy hover:border-primary-navy/20 hover:bg-primary-navy/5 transition-all"
                     >
                       <FileText size={15} />
-                    </button>
-                    <button
-                      onClick={() => handleSendWhatsApp(b)}
-                      title="Send via WhatsApp"
-                      className="w-9 h-9 flex items-center justify-center rounded-lg border border-emerald-200 text-emerald-500 hover:text-emerald-700 hover:bg-emerald-50 hover:border-emerald-300 transition-all"
-                    >
-                      <MessageCircle size={15} />
                     </button>
                   </div>
                 </motion.div>
@@ -684,15 +632,6 @@ export const Invoices: React.FC = () => {
                   <Printer size={20} />
                   {i18n.language === 'ar' ? 'طباعة / حفظ PDF' : 'Print / Save as PDF'}
                 </button>
-                {selectedBooking && (
-                  <button
-                    onClick={() => handleSendWhatsApp(selectedBooking)}
-                    className="w-full min-h-[48px] flex items-center justify-center gap-2 border border-emerald-300 bg-emerald-50 rounded-xl font-bold text-xs uppercase tracking-widest text-emerald-700 hover:bg-emerald-100 active:scale-[0.98] transition-all"
-                  >
-                    <MessageCircle size={16} />
-                    {i18n.language === 'ar' ? 'إرسال عبر واتساب' : 'Send via WhatsApp'}
-                  </button>
-                )}
               </div>
             </motion.div>
           </motion.div>
