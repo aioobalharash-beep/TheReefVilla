@@ -224,9 +224,9 @@ export const Sanctuary: React.FC = () => {
         <div className="px-6 mt-8 space-y-4">
           <div className="h-4 bg-primary-navy/5 rounded w-32" />
           <div className="h-8 bg-primary-navy/5 rounded w-64" />
-          <div className="flex md:grid md:grid-cols-3 gap-0 overflow-hidden">
+          <div className="flex gap-0 overflow-hidden">
             {[1, 2, 3].map(i => (
-              <div key={i} className="flex-none w-full md:w-auto">
+              <div key={i} className="flex-none w-full md:w-1/3">
                 <div className="aspect-[4/3] bg-primary-navy/5" />
               </div>
             ))}
@@ -264,16 +264,17 @@ export const Sanctuary: React.FC = () => {
           </div>
         </div>
 
-        {/* Mobile: full-bleed snap carousel (100vw slides, zero gaps).
-            Desktop: flush 3-up grid, seamlessly stitched (gap-0). */}
-        <div className="flex md:grid md:grid-cols-3 overflow-x-auto md:overflow-visible snap-x snap-mandatory md:snap-none no-scrollbar gap-0">
+        {/* Single horizontal slider at every breakpoint — never wraps/stacks.
+            Mobile: full-bleed 100vw slides. Desktop: 3 flush landscape images
+            per view (md:w-1/3), scrolls horizontally for more. Zero gaps. */}
+        <div className="flex overflow-x-auto snap-x snap-mandatory no-scrollbar gap-0">
           {data.gallery.map((img, i) => (
             <motion.div
               key={i}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: i * 0.08 }}
-              className="flex-none w-full md:w-auto snap-center"
+              className="flex-none w-full md:w-1/3 snap-center"
             >
               <OptimizedImage
                 src={img.url}
