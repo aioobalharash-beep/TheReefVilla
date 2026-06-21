@@ -25,19 +25,41 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == uid;
     }
 
-    function isAdmin() {
+    // Admin allowlist — keep in sync with CLIENT_CONFIG.admin in
+    // src/config/clientConfig.ts. Granting admin by the verified token email
+    // (not just a writable `role` field) means the owner is never locked out
+    // by a missing/stale users/{uid} doc, and stops a guest from elevating
+    // themselves by writing role:'admin' to their own profile.
+    function adminEmails() {
+      return [
+        'aioob.alharash@gmail.com'
+      ];
+    }
+
+    function isAdminByEmail() {
       return isSignedIn()
-        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+        && request.auth.token.email != null
+        && request.auth.token.email.lower() in adminEmails();
+    }
+
+    function isAdmin() {
+      return isAdminByEmail()
+        || (isSignedIn()
+            && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+            && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
     }
 
     // ── User profiles ──────────────────────────────────────────────────────
     // Created on first sign-in by firestoreUsers.login(). Each user reads /
     // writes only their own doc; admins can manage all.
     match /users/{uid} {
-      allow read:           if isOwner(uid) || isAdmin();
-      allow create:         if isOwner(uid);
-      allow update, delete: if isOwner(uid) || isAdmin();
+      allow read:   if isOwner(uid) || isAdmin();
+      // Users manage their own profile, but only an allowlisted admin may
+      // assign the privileged 'admin' role — a guest cannot self-promote.
+      allow create: if isOwner(uid) && (isAdmin() || request.resource.data.role != 'admin');
+      allow update: if isAdmin()
+        || (isOwner(uid) && request.resource.data.role == resource.data.role);
+      allow delete: if isAdmin();
     }
 
     // ── Public catalogue & site content ────────────────────────────────────
