@@ -117,7 +117,7 @@ export const Layout: React.FC = () => {
   const drawerX = isRTL ? 280 : -280;
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row">
+    <div className="min-h-[100dvh] flex flex-col md:flex-row">
       {/* Sidebar for Desktop */}
       <aside className="hidden md:flex flex-col w-64 bg-primary-navy text-white h-screen sticky top-0 py-8 px-6">
         <Link to="/" className="block mb-10 group">

@@ -30,7 +30,7 @@ export const ClientLayout: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-pearl-white flex flex-col">
+    <div className="min-h-[100dvh] bg-pearl-white flex flex-col">
       {/* Client Top Bar */}
       <header className="fixed top-0 w-full z-50 bg-pearl-white/90 backdrop-blur-xl shadow-[0px_10px_30px_rgba(1,31,54,0.04)] px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
         <Link
