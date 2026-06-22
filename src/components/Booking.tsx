@@ -414,6 +414,17 @@ export const Booking: React.FC = () => {
     ? getAvailableSlotsForDate(`${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(selectedDates.start).padStart(2, '0')}`)
     : [];
 
+  // When only one day-use slot is bookable, auto-select it so the guest never
+  // has to tap a "type" with a single choice. The picker only renders when
+  // there's more than one option (see below) — ready for future morning/night
+  // slots without any further changes here.
+  useEffect(() => {
+    if (!isDayUse || availableSlots.length !== 1) return;
+    const only = availableSlots[0];
+    setSelectedSlot(prev => (prev?.id === only.id ? prev : only));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDayUse, availableSlots.length, availableSlots[0]?.id]);
+
   // Dynamic pricing breakdown
   const priceBreakdown: PriceBreakdown | null = (() => {
     if (selectedDates.start === null || selectedDates.end === null) return null;
@@ -1101,8 +1112,9 @@ export const Booking: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Day-Use Time Slot Selection */}
-      {isDayUse && dayUseSlots.length > 0 && (
+      {/* Day-Use Time Slot Selection — only shown when the guest actually has a
+          choice (2+ slots). A single slot is auto-selected above. */}
+      {isDayUse && availableSlots.length > 1 && (
         <motion.section
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
