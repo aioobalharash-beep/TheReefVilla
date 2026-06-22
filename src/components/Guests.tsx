@@ -282,13 +282,13 @@ export const Guests: React.FC = () => {
           />
         </div>
 
-        <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+        <div className="flex flex-wrap gap-2">
           {filters.map((filter) => (
             <button
               key={filter.id}
               onClick={() => setActiveFilter(filter.id)}
               className={cn(
-                "whitespace-nowrap px-6 py-2.5 rounded-full text-xs font-bold transition-all active:scale-95",
+                "whitespace-nowrap px-4 py-2 rounded-full text-xs font-bold transition-all active:scale-95",
                 activeFilter === filter.id ? "bg-primary-navy text-white" : "bg-white text-primary-navy/60 hover:bg-primary-navy/5 shadow-sm"
               )}
             >
