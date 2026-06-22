@@ -240,7 +240,7 @@
     "uploadReceiptForApproval": "ارفع الإيصال للموافقة",
     "datesHeading": "إقامتك",
     "guestsHeading": "عدد الضيوف",
-    "guestsLimitNote": "حد أقصى 6 للمبيت · حد أقصى 16 للاستخدام النهاري",
+    "guestsLimitNote": "حد أقصى 10 ضيوف",
     "guest": "ضيف",
     "guestsPlural": "ضيوف",
     "checkInCard": "الدخول",

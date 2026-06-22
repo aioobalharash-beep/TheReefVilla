@@ -906,7 +906,7 @@ export const Booking: React.FC = () => {
         );
       })()}
 
-      {/* Guest Count — dropdown range follows stayType (6 overnight, 16 day-use) */}
+      {/* Guest Count — dropdown range from occupancy caps (max 10, all stay types) */}
       <section className="space-y-2">
         <div className="flex items-center justify-between gap-2">
           <label htmlFor="guest-count" className="text-[10px] font-bold uppercase tracking-widest text-secondary-gold">
@@ -915,7 +915,7 @@ export const Booking: React.FC = () => {
           <span className="flex items-center gap-1 text-[10px] font-medium text-primary-navy/40">
             <Info size={11} className="text-secondary-gold/70" />
             {t('booking.guestsLimitNote', {
-              defaultValue: 'Max 6 overnight · Max 16 day use',
+              defaultValue: 'Max 10 guests',
             })}
           </span>
         </div>
