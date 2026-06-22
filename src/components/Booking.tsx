@@ -36,8 +36,9 @@ export const Booking: React.FC = () => {
   // Capacity caps depend on stayType — overnight beds vs day-use gathering.
   // Re-clamped via a useEffect below when stayType changes.
   const [guestCount, setGuestCount] = useState<number>(2);
-  // Thawani card payment runs alongside bank transfer as a guest-visible option.
-  const SHOW_THAWANI = true;
+  // Thawani hidden from the public UI for now (owner not ready). Flip to true
+  // to re-enable card payments alongside bank transfer — backend + flow remain.
+  const SHOW_THAWANI = false;
   const [paymentMethod, setPaymentMethod] = useState<'thawani' | 'bank_transfer'>('bank_transfer');
   // Deposit handling — default is "pay on arrival" (owners' usual preference);
   // the guest may opt to add the refundable deposit to today's payment.
