@@ -17,7 +17,9 @@ import {
 } from 'firebase/auth';
 import { db, auth } from './firebase';
 import { isAdminEmail } from '../config/clientConfig';
-import { notifyAdminsOfNewBooking } from './pushNotifications';
+// NOTE: pushNotifications is dynamically imported at call time (below) so that
+// firebase/messaging does not get bundled into the public landing pages — only
+// the admin dashboard needs it.
 
 // ── Collection refs ──
 
@@ -480,15 +482,17 @@ export const firestoreBookings = {
     // must never block on notification delivery. Safe no-op if the server
     // endpoint is not deployed; the Cloud Function on bookings/{id} also
     // covers this path independently.
-    notifyAdminsOfNewBooking({
-      bookingId: docRef.id,
-      guest_name: data.guest_name,
-      total_amount: grandTotal,
-      check_in: data.check_in,
-      check_out: data.check_out,
-      check_in_time: booking.check_in_time,
-      check_out_time: booking.check_out_time,
-    });
+    void import('./pushNotifications')
+      .then(m => m.notifyAdminsOfNewBooking({
+        bookingId: docRef.id,
+        guest_name: data.guest_name,
+        total_amount: grandTotal,
+        check_in: data.check_in,
+        check_out: data.check_out,
+        check_in_time: booking.check_in_time,
+        check_out_time: booking.check_out_time,
+      }))
+      .catch(() => { /* fire-and-forget */ });
 
     return { ...booking, id: docRef.id };
   },
