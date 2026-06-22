@@ -6,14 +6,30 @@ interface OptimizedImageProps extends React.ImgHTMLAttributes<HTMLImageElement> 
   alt: string;
   /** Cloudinary/external URL — auto-generates a tiny blur placeholder */
   placeholderWidth?: number;
+  /** Max rendered width (px). Cloudinary delivers a right-sized, modern image. */
+  maxWidth?: number;
+}
+
+function isCloudinary(src: string): boolean {
+  return src.includes('res.cloudinary.com') && src.includes('/upload/');
 }
 
 function buildPlaceholderUrl(src: string, width: number): string | null {
   // Cloudinary: inject w_<n>,e_blur:800,q_10 transform
-  if (src.includes('res.cloudinary.com') && src.includes('/upload/')) {
+  if (isCloudinary(src)) {
     return src.replace('/upload/', `/upload/w_${width},e_blur:800,q_10,f_auto/`);
   }
   return null;
+}
+
+// Right-size + modern-format the main image so phones don't download the full
+// multi-MB upload. f_auto → WebP/AVIF, q_auto → smart compression, c_limit →
+// never upscales beyond the original.
+function buildOptimizedUrl(src: string, maxWidth: number): string {
+  if (isCloudinary(src)) {
+    return src.replace('/upload/', `/upload/f_auto,q_auto,c_limit,w_${maxWidth}/`);
+  }
+  return src;
 }
 
 export const OptimizedImage: React.FC<OptimizedImageProps> = ({
@@ -21,11 +37,13 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
   alt,
   className,
   placeholderWidth = 40,
+  maxWidth = 1280,
   style,
   ...rest
 }) => {
   const [loaded, setLoaded] = useState(false);
   const blurUrl = buildPlaceholderUrl(src, placeholderWidth);
+  const optimizedSrc = buildOptimizedUrl(src, maxWidth);
 
   const onLoad = useCallback(() => setLoaded(true), []);
 
@@ -48,7 +66,7 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
 
       {/* Main image */}
       <img
-        src={src}
+        src={optimizedSrc}
         alt={alt}
         loading="lazy"
         decoding="async"
