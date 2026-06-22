@@ -457,33 +457,13 @@ export const Guests: React.FC = () => {
                 {/* Action row */}
                 <div className="flex gap-3 pt-4 border-t border-primary-navy/5 flex-wrap">
                   {guest.displayStatus === 'pending' && (
-                    <>
-                      <button
-                        onClick={() => handleApprove(guest.id)}
-                        className="flex-1 min-w-[140px] py-2.5 rounded-lg text-[10px] uppercase font-bold tracking-widest active:scale-[0.98] transition-all bg-primary-navy text-white flex items-center justify-center gap-1.5"
-                      >
-                        <Check size={13} />
-                        {t('guests.approveBooking')}
-                      </button>
-                      {guest.payment_method === 'bank_transfer' && guest.receiptURL && (
-                        <button
-                          onClick={() => setReceiptViewURL(guest.receiptURL)}
-                          className="px-4 py-2.5 rounded-lg border border-secondary-gold/40 bg-secondary-gold/5 text-secondary-gold hover:bg-secondary-gold/10 text-[10px] uppercase font-bold tracking-widest active:scale-[0.98] transition-all flex items-center gap-1.5"
-                        >
-                          <Paperclip size={13} />
-                          {t('guests.viewReceipt')}
-                        </button>
-                      )}
-                      {guest.idImageUrl && (
-                        <button
-                          onClick={() => setIdViewURL(guest.idImageUrl!)}
-                          className="px-4 py-2.5 rounded-lg border border-secondary-gold/40 bg-secondary-gold/5 text-secondary-gold hover:bg-secondary-gold/10 text-[10px] uppercase font-bold tracking-widest active:scale-[0.98] transition-all flex items-center gap-1.5"
-                        >
-                          <Paperclip size={13} />
-                          View ID
-                        </button>
-                      )}
-                    </>
+                    <button
+                      onClick={() => handleApprove(guest.id)}
+                      className="flex-1 min-w-[140px] py-2.5 rounded-lg text-[10px] uppercase font-bold tracking-widest active:scale-[0.98] transition-all bg-primary-navy text-white flex items-center justify-center gap-1.5"
+                    >
+                      <Check size={13} />
+                      {t('guests.approveBooking')}
+                    </button>
                   )}
                   {guest.displayStatus === 'upcoming' && (
                     <div className="flex items-center gap-2 flex-1 min-w-[140px]">
@@ -503,6 +483,27 @@ export const Guests: React.FC = () => {
                     <div className="flex-1 min-w-[140px] py-2.5 text-center text-[10px] uppercase font-bold tracking-widest text-primary-navy/40">
                       {t('guests.stayCompleted')}
                     </div>
+                  )}
+
+                  {/* Transfer receipt + ID — viewable at any status (not just
+                      while pending), so the owner can re-check them anytime. */}
+                  {guest.payment_method === 'bank_transfer' && guest.receiptURL && (
+                    <button
+                      onClick={() => setReceiptViewURL(guest.receiptURL)}
+                      className="px-4 py-2.5 rounded-lg border border-secondary-gold/40 bg-secondary-gold/5 text-secondary-gold hover:bg-secondary-gold/10 text-[10px] uppercase font-bold tracking-widest active:scale-[0.98] transition-all flex items-center gap-1.5"
+                    >
+                      <Paperclip size={13} />
+                      {t('guests.viewReceipt')}
+                    </button>
+                  )}
+                  {guest.idImageUrl && (
+                    <button
+                      onClick={() => setIdViewURL(guest.idImageUrl!)}
+                      className="px-4 py-2.5 rounded-lg border border-secondary-gold/40 bg-secondary-gold/5 text-secondary-gold hover:bg-secondary-gold/10 text-[10px] uppercase font-bold tracking-widest active:scale-[0.98] transition-all flex items-center gap-1.5"
+                    >
+                      <Paperclip size={13} />
+                      View ID
+                    </button>
                   )}
 
                   {/* Cancel — visible for all active bookings */}
