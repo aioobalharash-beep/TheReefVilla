@@ -136,9 +136,10 @@ export const Reports: React.FC = () => {
             <input
               type="date"
               lang={i18n.language}
+              dir="ltr"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="w-full bg-pearl-white border border-primary-navy/10 rounded-xl py-3 px-4 text-sm text-primary-navy font-medium focus:ring-1 focus:ring-secondary-gold/50 focus:border-secondary-gold/50 outline-none"
+              className="w-full bg-white border border-primary-navy/10 rounded-xl py-3 px-4 text-sm text-primary-navy font-medium text-start [color-scheme:light] focus:ring-1 focus:ring-secondary-gold/50 focus:border-secondary-gold/50 outline-none"
             />
           </div>
           <div className="flex-1 space-y-1.5">
@@ -146,9 +147,10 @@ export const Reports: React.FC = () => {
             <input
               type="date"
               lang={i18n.language}
+              dir="ltr"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="w-full bg-pearl-white border border-primary-navy/10 rounded-xl py-3 px-4 text-sm text-primary-navy font-medium focus:ring-1 focus:ring-secondary-gold/50 focus:border-secondary-gold/50 outline-none"
+              className="w-full bg-white border border-primary-navy/10 rounded-xl py-3 px-4 text-sm text-primary-navy font-medium text-start [color-scheme:light] focus:ring-1 focus:ring-secondary-gold/50 focus:border-secondary-gold/50 outline-none"
             />
           </div>
           <div className="flex items-end">
