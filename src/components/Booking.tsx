@@ -1693,7 +1693,7 @@ export const Booking: React.FC = () => {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 40 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white w-full sm:max-w-lg sm:rounded-[24px] rounded-t-[24px] overflow-hidden shadow-2xl max-h-[85vh] flex flex-col"
+              className="bg-white w-full sm:max-w-lg sm:rounded-[24px] rounded-t-[24px] overflow-hidden shadow-2xl max-h-[85dvh] flex flex-col"
             >
               {/* Modal Header */}
               <div className="flex items-center justify-between p-5 border-b border-primary-navy/5 flex-shrink-0">
@@ -1719,7 +1719,7 @@ export const Booking: React.FC = () => {
               </div>
 
               {/* Modal Footer */}
-              <div className="p-5 border-t border-primary-navy/5 flex-shrink-0 space-y-2.5">
+              <div className="px-5 pt-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] border-t border-primary-navy/5 flex-shrink-0 space-y-2.5">
                 <button
                   onClick={() => {
                     setTermsAccepted(true);
