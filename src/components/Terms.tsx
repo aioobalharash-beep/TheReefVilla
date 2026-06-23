@@ -2,8 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft } from 'lucide-react';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../services/firebase';
+import { getPropertyDetails } from '../services/firestoreLite';
 
 const DEFAULT_TERMS_EN = `1. Booking & Payment
 All reservations require a security deposit at the time of booking. Full payment is due upon check-in. Accepted methods include Thawani, bank transfer, and walk-in payment.
@@ -44,10 +43,9 @@ export const Terms: React.FC = () => {
   const [termsAr, setTermsAr] = useState('');
 
   useEffect(() => {
-    getDoc(doc(db, 'settings', 'property_details'))
-      .then(snap => {
-        if (!snap.exists()) return;
-        const data = snap.data() as any;
+    getPropertyDetails()
+      .then(data => {
+        if (!data) return;
         setTermsEn(typeof data.termsEn === 'string' ? data.termsEn : '');
         setTermsAr(typeof data.termsAr === 'string' ? data.termsAr : '');
       })

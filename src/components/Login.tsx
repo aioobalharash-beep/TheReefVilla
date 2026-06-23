@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { Eye, EyeOff, LogIn, AlertCircle, ArrowLeft, Mail } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { sendPasswordResetEmail } from '../services/firebase';
+import { sendPasswordResetEmail } from '../services/firebaseApp';
 import { useTranslation } from 'react-i18next';
 import { LanguageToggle } from './LanguageToggle';
 import { getClientConfig } from '../config/clientConfig';

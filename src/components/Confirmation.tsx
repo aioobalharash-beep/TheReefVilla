@@ -3,8 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { CheckCircle2, MapPin, FileText } from 'lucide-react';
 import { generateInvoicePDF } from '../services/pdf';
-import { doc, getDoc, onSnapshot } from 'firebase/firestore';
-import { db } from '../services/firebase';
+import { getBooking, getPropertyDetails } from '../services/firestoreLite';
 import { useTranslation } from 'react-i18next';
 import { getClientConfig } from '../config/clientConfig';
 import { formatTime } from '../services/pricingUtils';
@@ -18,9 +17,8 @@ export const Confirmation: React.FC = () => {
   const bookingIdParam = new URLSearchParams(location.search).get('booking');
 
   // Bookings normally arrive via router state. Returning from Thawani's hosted
-  // page there is no state — only ?booking=<id> — so we subscribe to the doc
-  // directly. The live subscription also lets the page reflect the moment the
-  // Thawani webhook flips the booking from pending → confirmed/paid.
+  // page there is no state — only ?booking=<id> — so we fetch the doc directly
+  // (one-shot, via the lite SDK).
   const [booking, setBooking] = useState<any>(state?.booking ?? null);
   const [loadingBooking, setLoadingBooking] = useState(!state?.booking && !!bookingIdParam);
 
@@ -29,18 +27,15 @@ export const Confirmation: React.FC = () => {
 
   useEffect(() => {
     if (state?.booking || !bookingIdParam) return;
-    const unsub = onSnapshot(
-      doc(db, 'bookings', bookingIdParam),
-      snap => {
-        setBooking(snap.exists() ? { id: snap.id, ...snap.data() } : null);
-        setLoadingBooking(false);
-      },
-      err => {
-        console.error('[Confirmation] booking subscription failed:', err);
-        setLoadingBooking(false);
-      },
-    );
-    return unsub;
+    let active = true;
+    // One-shot lite read. Realtime payment-status flips (Thawani webhook) are
+    // not surfaced live here; Thawani is currently disabled, and a single
+    // fetch is enough for the bank-transfer / walk-in flows.
+    getBooking(bookingIdParam)
+      .then(b => { if (active) setBooking(b); })
+      .catch(err => console.error('[Confirmation] booking load failed:', err))
+      .finally(() => { if (active) setLoadingBooking(false); });
+    return () => { active = false; };
   }, [state?.booking, bookingIdParam]);
 
   const propertyName = state?.propertyName || booking?.property_name || 'Reef Villa';
@@ -55,10 +50,9 @@ export const Confirmation: React.FC = () => {
   // Load property details from Firestore (bankPhone for bank transfers, licenseNumber for PDFs)
   useEffect(() => {
     if (!booking) return;
-    getDoc(doc(db, 'settings', 'property_details'))
-      .then(snap => {
-        if (!snap.exists()) return;
-        const data = snap.data();
+    getPropertyDetails()
+      .then(data => {
+        if (!data) return;
         if (data.bankPhone) setBankPhone(data.bankPhone);
         if (data.licenseNumber) setLicenseNumber(data.licenseNumber);
       })

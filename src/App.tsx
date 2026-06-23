@@ -4,9 +4,11 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { ScrollToTop } from './components/ScrollToTop';
 
-// Layouts loaded eagerly (small, shared shell)
-import { Layout } from './components/Layout';
+// Public shell loaded eagerly (small, no Firestore). The admin shell is lazy:
+// it pulls the full realtime Firestore SDK (notifications), which must stay out
+// of the public/landing bundle.
 import { ClientLayout } from './components/ClientLayout';
+const Layout = lazy(() => import('./components/Layout').then(m => ({ default: m.Layout })));
 
 // ── Guest / Public pages ──
 const Sanctuary = lazy(() => import('./components/Sanctuary').then(m => ({ default: m.Sanctuary })));

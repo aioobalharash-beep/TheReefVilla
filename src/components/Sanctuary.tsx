@@ -3,8 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { Calendar as CalendarIcon, Instagram, MessageCircle, MapPin, Check } from 'lucide-react';
 import { OptimizedImage } from './OptimizedImage';
-import { doc, onSnapshot } from 'firebase/firestore';
-import { db } from '../services/firebase';
+import { getPropertyDetails } from '../services/firestoreLite';
 import { useTranslation } from 'react-i18next';
 import { bl, type BilingualField } from '../utils/bilingual';
 import { getClientConfig, whatsappHref } from '../config/clientConfig';
@@ -228,23 +227,19 @@ export const Sanctuary: React.FC = () => {
   });
 
   useEffect(() => {
-    const unsubscribe = onSnapshot(
-      doc(db, 'settings', 'property_details'),
-      (snap) => {
-        if (snap.exists()) {
-          const fresh = snap.data() as PropertyDetails;
-          setData({ ...DEFAULTS, ...fresh });
-          // Refresh the cache so the next visit paints the latest content.
-          try { localStorage.setItem(PROPERTY_CACHE_KEY, JSON.stringify(fresh)); } catch { /* quota */ }
-        }
-        setLoading(false);
-      },
-      (error) => {
-        console.error('Property details listener error:', error);
-        setLoading(false);
-      }
-    );
-    return () => unsubscribe();
+    let active = true;
+    // One-shot lite read — realtime isn't needed for the public landing, and
+    // the cache below keeps repeat visits instant.
+    getPropertyDetails()
+      .then(fresh => {
+        if (!active || !fresh) return;
+        setData({ ...DEFAULTS, ...(fresh as PropertyDetails) });
+        // Refresh the cache so the next visit paints the latest content.
+        try { localStorage.setItem(PROPERTY_CACHE_KEY, JSON.stringify(fresh)); } catch { /* quota */ }
+      })
+      .catch(error => console.error('Property details load error:', error))
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
   }, []);
 
   if (loading) {

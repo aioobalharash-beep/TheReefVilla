@@ -1,24 +1,16 @@
-import { initializeApp } from 'firebase/app';
 import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore';
-import { getAuth, sendPasswordResetEmail as firebaseSendReset } from 'firebase/auth';
+import app, { auth, sendPasswordResetEmail } from './firebaseApp';
 
-const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || '',
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || '',
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || '',
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || '',
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '',
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || '',
-};
-
-const app = initializeApp(firebaseConfig);
+// FULL realtime Firestore SDK (onSnapshot + persistent multi-tab cache).
+// Only the ADMIN portal needs live updates, so this module must only be
+// imported from admin chunks. Public read-only pages use firebaseLite.ts.
 export const db = initializeFirestore(app, {
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
 });
-export const auth = getAuth(app);
 
-export async function sendPasswordResetEmail(email: string) {
-  await firebaseSendReset(auth, email);
-}
+// Re-exported for back-compat so admin components that did
+// `import { auth } from './firebase'` keep working. Auth itself lives in
+// firebaseApp.ts and carries no Firestore dependency.
+export { auth, sendPasswordResetEmail };
 
 export default app;
