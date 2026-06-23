@@ -456,10 +456,10 @@ export const Invoices: React.FC = () => {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-[20px] overflow-hidden shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto"
+              className="bg-white rounded-[20px] overflow-hidden shadow-2xl max-w-lg w-full max-h-[90dvh] flex flex-col"
             >
               {/* Modal Header */}
-              <div className="bg-surface-container-low p-4 sm:p-5 border-b border-primary-navy/5 flex justify-between items-center sticky top-0 z-10">
+              <div className="bg-surface-container-low p-4 sm:p-5 border-b border-primary-navy/5 flex justify-between items-center flex-shrink-0 z-10">
                 <div className="flex items-center gap-3">
                   {config.logoPath ? (
                     <img
@@ -494,7 +494,7 @@ export const Invoices: React.FC = () => {
               </div>
 
               {/* Invoice Body — NO VAT for guest invoices */}
-              <div className="p-4 sm:p-6 space-y-5 sm:space-y-6 text-sm">
+              <div className="p-4 sm:p-6 space-y-5 sm:space-y-6 text-sm overflow-y-auto flex-1">
                 <div className="flex justify-between items-start">
                   <div className="space-y-1">
                     <BrandMark variant="light" size="sm" className="uppercase tracking-tight" />
@@ -623,7 +623,7 @@ export const Invoices: React.FC = () => {
               </div>
 
               {/* Modal Actions */}
-              <div className="p-4 sm:p-5 bg-surface-container-low space-y-3 border-t border-primary-navy/5 no-print">
+              <div className="px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-5 sm:pt-5 sm:pb-[max(1.25rem,env(safe-area-inset-bottom))] bg-surface-container-low space-y-3 border-t border-primary-navy/5 no-print flex-shrink-0">
                 {/* Primary action — large, full-width tap target for mobile owners */}
                 <button
                   onClick={handlePrint}
