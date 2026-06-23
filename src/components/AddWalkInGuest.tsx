@@ -217,9 +217,9 @@ export const AddWalkInGuest: React.FC<AddWalkInGuestProps> = ({ open, onClose, p
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="bg-white rounded-[24px] w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl"
+        className="bg-white rounded-[24px] w-full max-w-md max-h-[90dvh] flex flex-col shadow-2xl"
       >
-        <div className="flex items-center justify-between p-6 border-b border-primary-navy/5">
+        <div className="flex items-center justify-between p-6 border-b border-primary-navy/5 flex-shrink-0">
           <div>
             <h3 className="font-headline text-lg font-bold text-primary-navy">{t('guests.addWalkInGuest')}</h3>
             <p className="text-xs text-primary-navy/50 font-medium">{t('guests.manualGuestEntry')}</p>
@@ -229,7 +229,7 @@ export const AddWalkInGuest: React.FC<AddWalkInGuestProps> = ({ open, onClose, p
           </button>
         </div>
 
-        <div className="p-6 space-y-5">
+        <div className="p-6 space-y-5 overflow-y-auto flex-1">
           {/* Name */}
           <div className="space-y-1.5">
             <label className="text-[10px] font-bold uppercase tracking-widest text-secondary-gold">
@@ -599,7 +599,7 @@ export const AddWalkInGuest: React.FC<AddWalkInGuestProps> = ({ open, onClose, p
           </div>
         </div>
 
-        <div className="p-6 border-t border-primary-navy/5 flex gap-3">
+        <div className="px-6 pt-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] border-t border-primary-navy/5 flex gap-3 flex-shrink-0">
           <button
             onClick={handleClose}
             className="flex-1 py-3 rounded-xl border border-primary-navy/20 font-bold text-xs uppercase tracking-widest text-primary-navy"
