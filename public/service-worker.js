@@ -11,16 +11,17 @@
 // replace the first on every page load — which is what was silently killing
 // background push notifications.
 
-const CACHE_NAME = 'reef-villa-shell-v4';
-const SHELL_ASSETS = [
-  '/',
-  '/index.html',
-];
+// Bump on every change that should invalidate caches. `activate` deletes any
+// cache whose name doesn't match, so a returning visitor gets a clean slate.
+const CACHE_NAME = 'reef-villa-shell-v5';
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(SHELL_ASSETS))
-  );
+  // Deliberately DO NOT precache an index.html snapshot. A fixed snapshot goes
+  // stale against Vite's content-hashed assets: after a redeploy it would point
+  // at /assets/index-<oldhash>.css which 404s, painting the (now prerendered)
+  // HTML completely unstyled. Instead the navigate handler below caches the
+  // latest good HTML on each online visit, so the offline fallback always
+  // matches the assets cached alongside it.
   self.skipWaiting();
 });
 
@@ -38,12 +39,26 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET') return;
 
   if (request.mode === 'navigate') {
+    // Network-first, then refresh the cached fallback. Caching the fresh HTML
+    // keeps the offline fallback in sync with the hashed assets cached on the
+    // same visit, so it never references a CSS/JS hash that has been rotated
+    // away by a later deploy.
     event.respondWith(
-      fetch(request).catch(() => caches.match('/index.html'))
+      fetch(request)
+        .then((response) => {
+          if (response && response.status === 200) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put('/index.html', clone));
+          }
+          return response;
+        })
+        .catch(() => caches.match('/index.html'))
     );
     return;
   }
 
+  // Hashed, immutable assets: cache-first with background revalidate. Fall back
+  // to cache if the network is unavailable.
   event.respondWith(
     caches.match(request).then((cached) => {
       const fetched = fetch(request).then((response) => {
@@ -52,7 +67,7 @@ self.addEventListener('fetch', (event) => {
           caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
         }
         return response;
-      });
+      }).catch(() => cached);
       return cached || fetched;
     })
   );
