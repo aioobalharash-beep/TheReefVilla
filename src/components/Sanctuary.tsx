@@ -121,6 +121,10 @@ const DEFAULTS: PropertyDetails = {
   ],
 };
 
+// Last-known property content is cached here so repeat visits paint real
+// content instantly instead of waiting on a Firestore round-trip.
+const PROPERTY_CACHE_KEY = 'reef_property_details_v1';
+
 interface FooterProps {
   chaletName: string;
   footerText: string;
@@ -210,15 +214,28 @@ export const Sanctuary: React.FC = () => {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
   const lang = i18n.language;
-  const [data, setData] = useState<PropertyDetails>(DEFAULTS);
-  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<PropertyDetails>(() => {
+    // Paint last-known content instantly on repeat visits — no skeleton, no
+    // wait for Firestore. Cold first visits fall back to DEFAULTS + skeleton.
+    try {
+      const raw = localStorage.getItem(PROPERTY_CACHE_KEY);
+      if (raw) return { ...DEFAULTS, ...(JSON.parse(raw) as PropertyDetails) };
+    } catch { /* ignore */ }
+    return DEFAULTS;
+  });
+  const [loading, setLoading] = useState(() => {
+    try { return !localStorage.getItem(PROPERTY_CACHE_KEY); } catch { return true; }
+  });
 
   useEffect(() => {
     const unsubscribe = onSnapshot(
       doc(db, 'settings', 'property_details'),
       (snap) => {
         if (snap.exists()) {
-          setData({ ...DEFAULTS, ...snap.data() as PropertyDetails });
+          const fresh = snap.data() as PropertyDetails;
+          setData({ ...DEFAULTS, ...fresh });
+          // Refresh the cache so the next visit paints the latest content.
+          try { localStorage.setItem(PROPERTY_CACHE_KEY, JSON.stringify(fresh)); } catch { /* quota */ }
         }
         setLoading(false);
       },
