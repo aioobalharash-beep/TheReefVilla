@@ -4,12 +4,17 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ChevronLeft, ChevronRight, ShieldCheck, AlertCircle, ArrowLeft, Upload, CreditCard, Building2, Check, FileText, X, Users, Info } from 'lucide-react';
 import { maxGuestsFor, clampGuestCount } from '../config/occupancy';
 import { cn } from '@/src/lib/utils';
-import { propertiesApi, bookingsApi } from '../services/api';
 import { createThawaniCheckout } from '../services/thawani';
 import { uploadToCloudinary } from '../services/cloudinary';
-import { sendWhatsAppInvoice } from './Invoices';
-import { collection, query, orderBy, onSnapshot, doc, getDoc } from 'firebase/firestore';
-import { db } from '../services/firebase';
+import { sendWhatsAppInvoice } from '../services/whatsappInvoice';
+import {
+  listProperties,
+  listBookingsRaw,
+  getExternalBlocks,
+  getPropertyStatus,
+  getPropertyDetails,
+  createBooking,
+} from '../services/firestoreLite';
 import { calculateTotalPrice, formatBreakdown, migratePricing, formatTime, getSlotRateForDay, formatLocalDate, parseLocalDate, getDayUseTimes, getNightStayTimes, type PricingSettings, type PriceBreakdown, type DayUseSlot } from '../services/pricingUtils';
 import type { Property } from '../types';
 import { useTranslation } from 'react-i18next';
@@ -108,7 +113,7 @@ export const Booking: React.FC = () => {
   const [termsNudge, setTermsNudge] = useState(false);
 
   useEffect(() => {
-    propertiesApi.list()
+    listProperties()
       .then(properties => {
         if (properties.length > 0) setProperty(properties[0]);
       })
@@ -116,7 +121,7 @@ export const Booking: React.FC = () => {
       .finally(() => setLoading(false));
   }, []);
 
-  // Real-time listener for existing bookings to prevent double-booking.
+  // One-shot read of existing bookings to prevent double-booking.
   //
   // A date is blocked iff a guest is occupying the chalet from the 2 PM arrival
   // window onwards (i.e. it is a NIGHT someone is sleeping there). The morning
@@ -125,90 +130,92 @@ export const Booking: React.FC = () => {
   //   • bookedNights — the nights the guest sleeps at the property.
   //   • slotMap — slot-based day-use bookings that only block a single slot.
   useEffect(() => {
-    const q = query(collection(db, 'bookings'), orderBy('created_at', 'desc'));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const bookedNights = new Set<string>();
-      const slotMap = new Map<string, string[]>();
+    let active = true;
+    // One-shot lite read of existing bookings for availability. Realtime isn't
+    // required for a single-property villa; double-booking is still guarded by
+    // the admin-side review of pending bookings.
+    listBookingsRaw()
+      .then(docs => {
+        if (!active) return;
+        const bookedNights = new Set<string>();
+        const slotMap = new Map<string, string[]>();
 
-      snapshot.docs.forEach(d => {
-        const data = d.data();
-        if (data.status === 'cancelled') return;
+        docs.forEach(data => {
+          if (data.status === 'cancelled') return;
 
-        const bIsDayUse = data.check_in === data.check_out;
+          const bIsDayUse = data.check_in === data.check_out;
 
-        if (bIsDayUse && data.slot_id) {
-          // Slot-based day-use: only block that slot, not the whole day
-          const existing = slotMap.get(data.check_in) || [];
-          existing.push(data.slot_id);
-          slotMap.set(data.check_in, existing);
-        } else if (bIsDayUse) {
-          // Full-day day-use with no slot → block the whole day as a night
-          bookedNights.add(data.check_in);
-        } else {
-          // Overnight stay. Nights run [check_in, check_out). The check_out
-          // day itself stays available — morning cleanup finishes before the
-          // next 2 PM arrival.
-          const checkIn = parseLocalDate(data.check_in);
-          const checkOut = parseLocalDate(data.check_out);
-          const cursor = new Date(checkIn);
-          while (cursor < checkOut) {
-            bookedNights.add(formatLocalDate(cursor));
-            cursor.setDate(cursor.getDate() + 1);
+          if (bIsDayUse && data.slot_id) {
+            // Slot-based day-use: only block that slot, not the whole day
+            const existing = slotMap.get(data.check_in) || [];
+            existing.push(data.slot_id);
+            slotMap.set(data.check_in, existing);
+          } else if (bIsDayUse) {
+            // Full-day day-use with no slot → block the whole day as a night
+            bookedNights.add(data.check_in);
+          } else {
+            // Overnight stay. Nights run [check_in, check_out). The check_out
+            // day itself stays available — morning cleanup finishes before the
+            // next 2 PM arrival.
+            const checkIn = parseLocalDate(data.check_in);
+            const checkOut = parseLocalDate(data.check_out);
+            const cursor = new Date(checkIn);
+            while (cursor < checkOut) {
+              bookedNights.add(formatLocalDate(cursor));
+              cursor.setDate(cursor.getDate() + 1);
+            }
           }
-        }
-      });
-      setBookedDates(bookedNights);
-      setBookedSlots(slotMap);
-      setBookedDatesLoaded(true);
-    });
-    return () => unsubscribe();
+        });
+        setBookedDates(bookedNights);
+        setBookedSlots(slotMap);
+      })
+      .catch(err => console.error('[Booking] availability load failed:', err))
+      .finally(() => { if (active) setBookedDatesLoaded(true); });
+    return () => { active = false; };
   }, []);
 
-  // Real-time listener for externally-synced blocks (Booking.com / Massarah
+  // One-shot read of externally-synced blocks (Booking.com / Massarah
   // calendars pulled by the iCal sync endpoint). Each block has an inclusive
   // start and an exclusive end (matches iCal DTEND semantics + our existing
   // overnight loop), so we expand them the same way bookings are expanded.
   useEffect(() => {
-    const ref = doc(db, 'settings', 'external_blocks');
-    const unsubscribe = onSnapshot(ref, (snap) => {
-      if (!snap.exists()) {
-        setExternalBlockedDates(new Set());
-        return;
-      }
-      const data = snap.data() as { blocks?: { start: string; end: string }[] };
-      const blocked = new Set<string>();
-      for (const b of data.blocks || []) {
-        if (!b.start) continue;
-        const start = parseLocalDate(b.start);
-        const end = b.end ? parseLocalDate(b.end) : new Date(start.getTime() + 86_400_000);
-        const cursor = new Date(start);
-        while (cursor < end) {
-          blocked.add(formatLocalDate(cursor));
-          cursor.setDate(cursor.getDate() + 1);
+    let active = true;
+    getExternalBlocks()
+      .then(blocks => {
+        if (!active) return;
+        const blocked = new Set<string>();
+        for (const b of blocks) {
+          if (!b.start) continue;
+          const start = parseLocalDate(b.start);
+          const end = b.end ? parseLocalDate(b.end) : new Date(start.getTime() + 86_400_000);
+          const cursor = new Date(start);
+          while (cursor < end) {
+            blocked.add(formatLocalDate(cursor));
+            cursor.setDate(cursor.getDate() + 1);
+          }
         }
-      }
-      setExternalBlockedDates(blocked);
-    });
-    return () => unsubscribe();
+        setExternalBlockedDates(blocked);
+      })
+      .catch(err => console.error('[Booking] external blocks load failed:', err));
+    return () => { active = false; };
   }, []);
 
-  // Real-time listener for property availability status
+  // One-shot read of property availability status
   useEffect(() => {
-    const ref = doc(db, 'settings', 'property_status');
-    const unsubscribe = onSnapshot(ref, (snap) => {
-      if (snap.exists()) {
-        setMaintenanceMode(snap.data().is_live === false);
-      }
-    });
-    return () => unsubscribe();
+    let active = true;
+    getPropertyStatus()
+      .then(status => {
+        if (active && status) setMaintenanceMode(status.is_live === false);
+      })
+      .catch(err => console.error('[Booking] property status load failed:', err));
+    return () => { active = false; };
   }, []);
 
   // Load dynamic pricing settings + bank details
   useEffect(() => {
-    getDoc(doc(db, 'settings', 'property_details'))
-      .then(snap => {
-        if (snap.exists()) {
-          const data = snap.data();
+    getPropertyDetails()
+      .then(data => {
+        if (data) {
           if (data.pricing) {
             const migrated = migratePricing(data.pricing);
             setPricingSettings(migrated);
@@ -644,7 +651,7 @@ export const Booking: React.FC = () => {
         const termsTimestamp = new Date().toISOString();
         const guestPhoneIntl = `+968${guestPhone.replace(/\s/g, '')}`;
         try {
-          const result = await bookingsApi.create({
+          const result = await createBooking({
             property_id: property.id,
             property_name: property.name,
             guest_name: guestName.trim(),
@@ -683,7 +690,7 @@ export const Booking: React.FC = () => {
             ...(termsAccepted ? { termsAccepted: true, termsAcceptedAt: termsTimestamp } : {}),
           });
 
-          const bookingId = result.booking.id;
+          const bookingId = result.id;
           if (!bookingId) throw new Error('Booking was not created correctly. Please try again.');
           const origin = window.location.origin;
           const { redirectUrl } = await createThawaniCheckout({
@@ -712,7 +719,7 @@ export const Booking: React.FC = () => {
 
       // Bank transfer — save booking to Firestore
       const bankTermsTimestamp = new Date().toISOString();
-      const result = await bookingsApi.create({
+      const result = await createBooking({
         property_id: property.id,
         property_name: property.name,
         guest_name: guestName.trim(),
@@ -751,7 +758,7 @@ export const Booking: React.FC = () => {
         ...(termsAccepted ? { termsAccepted: true, termsAcceptedAt: bankTermsTimestamp } : {}),
       });
 
-      const bankBookingId = result.booking.id;
+      const bankBookingId = result.id;
       if (!bankBookingId) throw new Error('Booking was not created correctly. Please try again.');
 
       // Trigger WhatsApp invoice (will connect API next)
@@ -763,8 +770,8 @@ export const Booking: React.FC = () => {
 
       navigate('/confirmation', {
         state: {
-          booking: result.booking,
-          propertyName: result.property_name,
+          booking: result,
+          propertyName: property.name,
         },
       });
     } catch (err: any) {

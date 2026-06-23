@@ -2,8 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, MapPin, Phone } from 'lucide-react';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../services/firebase';
+import { getPropertyDetails } from '../services/firestoreLite';
 
 const DEFAULT_ABOUT_EN = `Reef Villa is a luxury chalet nestled in the heart of Oman's breathtaking landscape. We blend modern comfort with traditional Omani heritage to create an unforgettable retreat experience.
 
@@ -27,10 +26,9 @@ export const About: React.FC = () => {
   const [aboutAr, setAboutAr] = useState('');
 
   useEffect(() => {
-    getDoc(doc(db, 'settings', 'property_details'))
-      .then(snap => {
-        if (!snap.exists()) return;
-        const data = snap.data() as any;
+    getPropertyDetails()
+      .then(data => {
+        if (!data) return;
         setAboutEn(typeof data.aboutEn === 'string' ? data.aboutEn : '');
         setAboutAr(typeof data.aboutAr === 'string' ? data.aboutAr : '');
       })

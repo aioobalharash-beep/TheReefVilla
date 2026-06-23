@@ -1,8 +1,13 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from '../services/firebase';
-import { authApi } from '../services/api';
+import { auth } from '../services/firebaseApp';
 import { isAdminEmail } from '../config/clientConfig';
+
+// The auth API pulls in the FULL realtime Firestore SDK (user profile/role
+// reads + writes), so it is imported lazily — only when someone actually
+// authenticates. Anonymous public visitors never trigger it, keeping the heavy
+// SDK out of the landing/public bundle.
+const loadAuthApi = () => import('../services/api').then(m => m.authApi);
 
 interface User {
   id: string;
@@ -40,6 +45,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           phone: fbUser.phoneNumber || '',
         };
         try {
+          const authApi = await loadAuthApi();
           const profile = (await authApi.me(fbUser.uid)) as User | null;
           // Heal a stale doc role BEFORE admin views mount and query Firestore,
           // so the dashboard/Property Editor don't hit "Missing or insufficient
@@ -66,18 +72,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
+    const authApi = await loadAuthApi();
     const result = await authApi.login(email, password);
     setUser(result.user);
     return result.user;
   }, []);
 
   const register = useCallback(async (data: { name: string; email: string; password: string; phone?: string }) => {
+    const authApi = await loadAuthApi();
     const result = await authApi.register(data);
     setUser(result.user);
     return result.user;
   }, []);
 
   const logout = useCallback(async () => {
+    const authApi = await loadAuthApi();
     await authApi.logout();
     setUser(null);
   }, []);

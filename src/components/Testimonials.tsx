@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { Star, Send, ArrowLeft, MessageSquare } from 'lucide-react';
 import { cn } from '@/src/lib/utils';
-import { testimonialsApi } from '../services/api';
+import { listTestimonials, createTestimonial } from '../services/firestoreLite';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { getClientConfig } from '../config/clientConfig';
@@ -38,7 +38,7 @@ export const Testimonials: React.FC = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    testimonialsApi.list()
+    listTestimonials()
       .then(data => setTestimonials(data))
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -55,7 +55,7 @@ export const Testimonials: React.FC = () => {
 
     setSubmitting(true);
     try {
-      const newT = await testimonialsApi.create({
+      const newT = await createTestimonial({
         ...form,
         guest_phone: `+968${form.guest_phone.replace(/\s/g, '')}`,
         stay_details: form.stay_details || 'Recent Stay',

@@ -3,8 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { Calendar as CalendarIcon, Instagram, MessageCircle, MapPin, Check } from 'lucide-react';
 import { OptimizedImage } from './OptimizedImage';
-import { doc, onSnapshot } from 'firebase/firestore';
-import { db } from '../services/firebase';
+import { getPropertyDetails } from '../services/firestoreLite';
 import { useTranslation } from 'react-i18next';
 import { bl, type BilingualField } from '../utils/bilingual';
 import { getClientConfig, whatsappHref } from '../config/clientConfig';
@@ -214,37 +213,37 @@ export const Sanctuary: React.FC = () => {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
   const lang = i18n.language;
-  const [data, setData] = useState<PropertyDetails>(() => {
-    // Paint last-known content instantly on repeat visits — no skeleton, no
-    // wait for Firestore. Cold first visits fall back to DEFAULTS + skeleton.
+  // First paint always uses DEFAULTS so the prerendered (build-time) HTML and
+  // the first client render are identical — no hydration mismatch. The cached
+  // content (repeat visits) is adopted in the mount effect below, then live
+  // Firestore data overrides it.
+  const [data, setData] = useState<PropertyDetails>(DEFAULTS);
+  const [loading, setLoading] = useState(false);
+
+  // Adopt last-known cached content instantly on the client (repeat visits).
+  useEffect(() => {
     try {
-      const raw = localStorage.getItem(PROPERTY_CACHE_KEY);
-      if (raw) return { ...DEFAULTS, ...(JSON.parse(raw) as PropertyDetails) };
+      const raw = typeof localStorage !== 'undefined'
+        ? localStorage.getItem(PROPERTY_CACHE_KEY)
+        : null;
+      if (raw) setData({ ...DEFAULTS, ...(JSON.parse(raw) as PropertyDetails) });
     } catch { /* ignore */ }
-    return DEFAULTS;
-  });
-  const [loading, setLoading] = useState(() => {
-    try { return !localStorage.getItem(PROPERTY_CACHE_KEY); } catch { return true; }
-  });
+  }, []);
 
   useEffect(() => {
-    const unsubscribe = onSnapshot(
-      doc(db, 'settings', 'property_details'),
-      (snap) => {
-        if (snap.exists()) {
-          const fresh = snap.data() as PropertyDetails;
-          setData({ ...DEFAULTS, ...fresh });
-          // Refresh the cache so the next visit paints the latest content.
-          try { localStorage.setItem(PROPERTY_CACHE_KEY, JSON.stringify(fresh)); } catch { /* quota */ }
-        }
-        setLoading(false);
-      },
-      (error) => {
-        console.error('Property details listener error:', error);
-        setLoading(false);
-      }
-    );
-    return () => unsubscribe();
+    let active = true;
+    // One-shot lite read — realtime isn't needed for the public landing, and
+    // the cache below keeps repeat visits instant.
+    getPropertyDetails()
+      .then(fresh => {
+        if (!active || !fresh) return;
+        setData({ ...DEFAULTS, ...(fresh as PropertyDetails) });
+        // Refresh the cache so the next visit paints the latest content.
+        try { localStorage.setItem(PROPERTY_CACHE_KEY, JSON.stringify(fresh)); } catch { /* quota */ }
+      })
+      .catch(error => console.error('Property details load error:', error))
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
   }, []);
 
   if (loading) {

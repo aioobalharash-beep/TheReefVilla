@@ -640,8 +640,3 @@ export const Invoices: React.FC = () => {
     </div>
   );
 };
-
-/** WhatsApp invoice trigger — logs for now, will connect API next */
-export function sendWhatsAppInvoice(bookingData: { guest_name: string; guest_phone?: string; id: string }) {
-  console.log(`Triggering WhatsApp PDF send for ${bookingData.guest_name}...`);
-}
