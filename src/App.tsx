@@ -1,5 +1,5 @@
-import { lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { lazy, Suspense, type ReactNode } from 'react';
+import { Navigate, Outlet, useRoutes, type RouteObject } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { ScrollToTop } from './components/ScrollToTop';
@@ -27,14 +27,7 @@ const Invoices = lazy(() => import('./components/Invoices').then(m => ({ default
 const Reports = lazy(() => import('./components/Reports').then(m => ({ default: m.Reports })));
 const PropertyEditor = lazy(() => import('./components/PropertyEditor').then(m => ({ default: m.PropertyEditor })));
 
-function AdminRoute({ children }: { children: React.ReactNode }) {
-  const { user, isAdmin, isLoading } = useAuth();
-  if (isLoading) return <LoadingScreen />;
-  if (!user || !isAdmin) return <Navigate to="/login" replace />;
-  return <>{children}</>;
-}
-
-function LoadingScreen() {
+export function LoadingScreen() {
   return (
     <div className="min-h-screen bg-pearl-white flex items-center justify-center">
       <div className="text-center space-y-4">
@@ -45,53 +38,81 @@ function LoadingScreen() {
   );
 }
 
-function AppRoutes() {
+// Root layout for every route: app-wide providers + scroll reset + a Suspense
+// boundary for the lazy route components. Rendered inside the router so router
+// hooks (useLocation in ScrollToTop) work. Public routes deliberately do NOT
+// wait on auth — only AdminRoute does — so the landing paints immediately
+// (and prerenders without an auth round-trip).
+function RootLayout() {
+  return (
+    <LanguageProvider>
+      <AuthProvider>
+        <ScrollToTop />
+        <Suspense fallback={<LoadingScreen />}>
+          <Outlet />
+        </Suspense>
+      </AuthProvider>
+    </LanguageProvider>
+  );
+}
+
+function AdminRoute({ children }: { children: ReactNode }) {
   const { user, isAdmin, isLoading } = useAuth();
-
   if (isLoading) return <LoadingScreen />;
-
-  return (
-    <Suspense fallback={<LoadingScreen />}>
-      <Routes>
-        {/* Public / Client Routes */}
-        <Route path="/" element={<ClientLayout />}>
-          <Route index element={<Sanctuary />} />
-          <Route path="booking" element={<Booking />} />
-          <Route path="testimonials" element={<Testimonials />} />
-          <Route path="terms" element={<Terms />} />
-          <Route path="about" element={<About />} />
-          <Route path="confirmation" element={<Confirmation />} />
-        </Route>
-
-        {/* Auth */}
-        <Route path="/login" element={user ? <Navigate to={isAdmin ? '/admin' : '/'} replace /> : <Login />} />
-
-        {/* Admin Routes */}
-        <Route path="/admin" element={<AdminRoute><Layout /></AdminRoute>}>
-          <Route index element={<Dashboard />} />
-          <Route path="calendar" element={<Calendar />} />
-          <Route path="guests" element={<Guests />} />
-          <Route path="invoices" element={<Invoices />} />
-          <Route path="reports" element={<Reports />} />
-          <Route path="edit-property" element={<PropertyEditor />} />
-        </Route>
-
-        {/* Fallback */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </Suspense>
-  );
+  if (!user || !isAdmin) return <Navigate to="/login" replace />;
+  return <>{children}</>;
 }
 
-export default function App() {
-  return (
-    <BrowserRouter>
-      <ScrollToTop />
-      <LanguageProvider>
-        <AuthProvider>
-          <AppRoutes />
-        </AuthProvider>
-      </LanguageProvider>
-    </BrowserRouter>
-  );
+function LoginRoute() {
+  const { user, isAdmin } = useAuth();
+  if (user) return <Navigate to={isAdmin ? '/admin' : '/'} replace />;
+  return <Login />;
 }
+
+export const routes: RouteObject[] = [
+  {
+    element: <RootLayout />,
+    children: [
+      // Public / Client routes
+      {
+        path: '/',
+        element: <ClientLayout />,
+        children: [
+          { index: true, Component: Sanctuary },
+          { path: 'booking', Component: Booking },
+          { path: 'testimonials', Component: Testimonials },
+          { path: 'terms', Component: Terms },
+          { path: 'about', Component: About },
+          { path: 'confirmation', Component: Confirmation },
+        ],
+      },
+
+      // Auth
+      { path: '/login', element: <LoginRoute /> },
+
+      // Admin routes
+      {
+        path: '/admin',
+        element: <AdminRoute><Layout /></AdminRoute>,
+        children: [
+          { index: true, Component: Dashboard },
+          { path: 'calendar', Component: Calendar },
+          { path: 'guests', Component: Guests },
+          { path: 'invoices', Component: Invoices },
+          { path: 'reports', Component: Reports },
+          { path: 'edit-property', Component: PropertyEditor },
+        ],
+      },
+
+      // Fallback
+      { path: '*', element: <Navigate to="/" replace /> },
+    ],
+  },
+];
+
+/** Renders the route tree. Used by both the client and the prerender server. */
+export function AppRoutes() {
+  return useRoutes(routes);
+}
+
+export default routes;

@@ -213,18 +213,22 @@ export const Sanctuary: React.FC = () => {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
   const lang = i18n.language;
-  const [data, setData] = useState<PropertyDetails>(() => {
-    // Paint last-known content instantly on repeat visits — no skeleton, no
-    // wait for Firestore. Cold first visits fall back to DEFAULTS + skeleton.
+  // First paint always uses DEFAULTS so the prerendered (build-time) HTML and
+  // the first client render are identical — no hydration mismatch. The cached
+  // content (repeat visits) is adopted in the mount effect below, then live
+  // Firestore data overrides it.
+  const [data, setData] = useState<PropertyDetails>(DEFAULTS);
+  const [loading, setLoading] = useState(false);
+
+  // Adopt last-known cached content instantly on the client (repeat visits).
+  useEffect(() => {
     try {
-      const raw = localStorage.getItem(PROPERTY_CACHE_KEY);
-      if (raw) return { ...DEFAULTS, ...(JSON.parse(raw) as PropertyDetails) };
+      const raw = typeof localStorage !== 'undefined'
+        ? localStorage.getItem(PROPERTY_CACHE_KEY)
+        : null;
+      if (raw) setData({ ...DEFAULTS, ...(JSON.parse(raw) as PropertyDetails) });
     } catch { /* ignore */ }
-    return DEFAULTS;
-  });
-  const [loading, setLoading] = useState(() => {
-    try { return !localStorage.getItem(PROPERTY_CACHE_KEY); } catch { return true; }
-  });
+  }, []);
 
   useEffect(() => {
     let active = true;
