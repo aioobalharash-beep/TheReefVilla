@@ -29,6 +29,18 @@ if ((window as unknown as { __SSG__?: boolean }).__SSG__) {
 }
 
 if ('serviceWorker' in navigator) {
+  // When a NEW service worker takes control (e.g. after a deploy bumps the
+  // cache version), reload once so the page picks up fresh, matching assets
+  // instead of being stranded on a stale render. Guarded by an existing
+  // controller so first-ever visits don't reload, and by a flag to avoid loops.
+  if (navigator.serviceWorker.controller) {
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (refreshing) return;
+      refreshing = true;
+      window.location.reload();
+    });
+  }
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/service-worker.js').catch(() => {});
   });
