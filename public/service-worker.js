@@ -11,7 +11,7 @@
 // replace the first on every page load — which is what was silently killing
 // background push notifications.
 
-const CACHE_NAME = 'al-malak-shell-v3';
+const CACHE_NAME = 'reef-villa-shell-v4';
 const SHELL_ASSETS = [
   '/',
   '/index.html',
