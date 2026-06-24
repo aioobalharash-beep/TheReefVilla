@@ -9,7 +9,6 @@ import { uploadToCloudinary } from '../services/cloudinary';
 import { sendWhatsAppInvoice } from '../services/whatsappInvoice';
 import {
   listProperties,
-  listBookingsRaw,
   getExternalBlocks,
   getPropertyStatus,
   getPropertyDetails,
@@ -121,7 +120,7 @@ export const Booking: React.FC = () => {
       .finally(() => setLoading(false));
   }, []);
 
-  // One-shot read of existing bookings to prevent double-booking.
+  // Realtime read of existing bookings to prevent double-booking.
   //
   // A date is blocked iff a guest is occupying the chalet from the 2 PM arrival
   // window onwards (i.e. it is a NIGHT someone is sleeping there). The morning
@@ -129,49 +128,74 @@ export const Booking: React.FC = () => {
   // 2 PM arrival slot is always free for the next guest. Each booking contributes:
   //   • bookedNights — the nights the guest sleeps at the property.
   //   • slotMap — slot-based day-use bookings that only block a single slot.
+  //
+  // Uses a live onSnapshot listener (not a one-shot read) so that the moment an
+  // admin records a manual / walk-in booking from the dashboard, this calendar
+  // marks those dates as booked without the guest having to refresh. The full
+  // realtime SDK is dynamically imported so it never weighs down the other
+  // public pages' bundles.
   useEffect(() => {
     let active = true;
-    // One-shot lite read of existing bookings for availability. Realtime isn't
-    // required for a single-property villa; double-booking is still guarded by
-    // the admin-side review of pending bookings.
-    listBookingsRaw()
-      .then(docs => {
-        if (!active) return;
-        const bookedNights = new Set<string>();
-        const slotMap = new Map<string, string[]>();
+    let unsubscribe: (() => void) | undefined;
 
-        docs.forEach(data => {
-          if (data.status === 'cancelled') return;
+    const applyDocs = (docs: { check_in: string; check_out: string; status?: string; slot_id?: string }[]) => {
+      const bookedNights = new Set<string>();
+      const slotMap = new Map<string, string[]>();
 
-          const bIsDayUse = data.check_in === data.check_out;
+      docs.forEach(data => {
+        // Only cancelled bookings free up the dates. Manual/walk-in bookings —
+        // and every payment_status, paid or pending — count as a hard block.
+        if (data.status === 'cancelled') return;
 
-          if (bIsDayUse && data.slot_id) {
-            // Slot-based day-use: only block that slot, not the whole day
-            const existing = slotMap.get(data.check_in) || [];
-            existing.push(data.slot_id);
-            slotMap.set(data.check_in, existing);
-          } else if (bIsDayUse) {
-            // Full-day day-use with no slot → block the whole day as a night
-            bookedNights.add(data.check_in);
-          } else {
-            // Overnight stay. Nights run [check_in, check_out). The check_out
-            // day itself stays available — morning cleanup finishes before the
-            // next 2 PM arrival.
-            const checkIn = parseLocalDate(data.check_in);
-            const checkOut = parseLocalDate(data.check_out);
-            const cursor = new Date(checkIn);
-            while (cursor < checkOut) {
-              bookedNights.add(formatLocalDate(cursor));
-              cursor.setDate(cursor.getDate() + 1);
-            }
+        const bIsDayUse = data.check_in === data.check_out;
+
+        if (bIsDayUse && data.slot_id) {
+          // Slot-based day-use: only block that slot, not the whole day
+          const existing = slotMap.get(data.check_in) || [];
+          existing.push(data.slot_id);
+          slotMap.set(data.check_in, existing);
+        } else if (bIsDayUse) {
+          // Full-day day-use with no slot → block the whole day as a night
+          bookedNights.add(data.check_in);
+        } else {
+          // Overnight stay. Nights run [check_in, check_out). The check_out
+          // day itself stays available — morning cleanup finishes before the
+          // next 2 PM arrival.
+          const checkIn = parseLocalDate(data.check_in);
+          const checkOut = parseLocalDate(data.check_out);
+          const cursor = new Date(checkIn);
+          while (cursor < checkOut) {
+            bookedNights.add(formatLocalDate(cursor));
+            cursor.setDate(cursor.getDate() + 1);
           }
-        });
-        setBookedDates(bookedNights);
-        setBookedSlots(slotMap);
+        }
+      });
+
+      setBookedDates(bookedNights);
+      setBookedSlots(slotMap);
+      setBookedDatesLoaded(true);
+    };
+
+    import('../services/firestore')
+      .then(({ firestoreBookings }) => {
+        if (!active) return;
+        unsubscribe = firestoreBookings.subscribeRaw(
+          docs => { if (active) applyDocs(docs); },
+          err => {
+            console.error('[Booking] availability listener failed:', err);
+            if (active) setBookedDatesLoaded(true);
+          },
+        );
       })
-      .catch(err => console.error('[Booking] availability load failed:', err))
-      .finally(() => { if (active) setBookedDatesLoaded(true); });
-    return () => { active = false; };
+      .catch(err => {
+        console.error('[Booking] availability listener load failed:', err);
+        if (active) setBookedDatesLoaded(true);
+      });
+
+    return () => {
+      active = false;
+      unsubscribe?.();
+    };
   }, []);
 
   // One-shot read of externally-synced blocks (Booking.com / Massarah

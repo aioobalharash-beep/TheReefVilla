@@ -55,12 +55,10 @@ export async function listProperties(): Promise<any[]> {
 
 // ── Bookings ──
 
-/** Raw booking docs for availability computation (Booking page). */
-export async function listBookingsRaw(): Promise<any[]> {
-  const q = query(bookingsCol(), orderBy('created_at', 'desc'));
-  const snap = await getDocs(q);
-  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
-}
+// NOTE: availability on the public Booking page is now read via a realtime
+// onSnapshot listener (services/firestore.ts → firestoreBookings.subscribeRaw)
+// so manual/walk-in bookings entered by an admin block client dates instantly.
+// The previous one-shot lite read (listBookingsRaw) has been removed.
 
 export async function getBooking(id: string): Promise<any | null> {
   const snap = await getDoc(doc(liteDb, 'bookings', id));

@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { getClientConfig } from '../config/clientConfig';
 import { collection, query, orderBy, onSnapshot, doc } from 'firebase/firestore';
 import { db } from '../services/firebase';
-import { formatTime } from '../services/pricingUtils';
+import { formatTime, parseLocalDate } from '../services/pricingUtils';
 
 interface RealtimeBooking {
   id: string;
@@ -226,43 +226,51 @@ export const Calendar: React.FC = () => {
   const getBookedDayMap = (): Map<number, { status: 'pending' | 'confirmed'; isDayUse: boolean; bookings: RealtimeBooking[] }> => {
     const dayMap = new Map<number, { status: 'pending' | 'confirmed'; isDayUse: boolean; bookings: RealtimeBooking[] }>();
 
+    const monthStart = new Date(currentYear, currentMonth, 1);
+    const monthEnd = new Date(currentYear, currentMonth + 1, 0);
+
     for (const b of bookings) {
       if (b.status === 'cancelled') continue;
 
-      const checkIn = new Date(b.check_in);
-      const checkOut = new Date(b.check_out);
       const bIsDayUse = b.check_in === b.check_out;
+      const checkIn = parseLocalDate(b.check_in);
+      // Nights vs days: an overnight stay occupies the nights [check_in,
+      // check_out) — the checkout day itself stays free for the next guest
+      // (checkout ~11 AM, next arrival ~2 PM), so it must NOT be blocked.
+      // Day-use bookings occupy only their single calendar day.
+      const blockUntil = bIsDayUse
+        ? new Date(checkIn.getTime() + 86_400_000)
+        : parseLocalDate(b.check_out);
 
-      const monthStart = new Date(currentYear, currentMonth, 1);
-      const monthEnd = new Date(currentYear, currentMonth + 1, 0);
+      if (blockUntil <= monthStart || checkIn > monthEnd) continue;
 
-      if (checkOut < monthStart || checkIn > monthEnd) continue;
+      const statusVal = (b.status === 'confirmed' || b.status === 'checked-in') ? 'confirmed' as const : 'pending' as const;
 
-      const startDay = checkIn.getMonth() === currentMonth && checkIn.getFullYear() === currentYear
-        ? checkIn.getDate() : 1;
-      const endDay = checkOut.getMonth() === currentMonth && checkOut.getFullYear() === currentYear
-        ? checkOut.getDate() : daysInMonth;
-
-      for (let d = startDay; d <= endDay; d++) {
-        const existing = dayMap.get(d);
-        const statusVal = (b.status === 'confirmed' || b.status === 'checked-in') ? 'confirmed' as const : 'pending' as const;
-
-        if (existing) {
-          existing.bookings.push(b);
-          if (statusVal === 'confirmed') existing.status = 'confirmed';
-          // If any booking on this day is NOT day-use, mark as full
-          if (!bIsDayUse) existing.isDayUse = false;
-        } else {
-          dayMap.set(d, { status: statusVal, isDayUse: bIsDayUse, bookings: [b] });
+      // Walk the occupied days [checkIn, blockUntil) and stamp each one that
+      // falls in the visible month. Looping by date (not start/end day index)
+      // keeps the exclusive-checkout rule correct across month boundaries.
+      const cursor = new Date(checkIn);
+      while (cursor < blockUntil) {
+        if (cursor.getMonth() === currentMonth && cursor.getFullYear() === currentYear) {
+          const d = cursor.getDate();
+          const existing = dayMap.get(d);
+          if (existing) {
+            existing.bookings.push(b);
+            if (statusVal === 'confirmed') existing.status = 'confirmed';
+            // If any booking on this day is NOT day-use, mark as full
+            if (!bIsDayUse) existing.isDayUse = false;
+          } else {
+            dayMap.set(d, { status: statusVal, isDayUse: bIsDayUse, bookings: [b] });
+          }
         }
+        cursor.setDate(cursor.getDate() + 1);
       }
     }
 
     // Layer externally-synced blocks onto the same map. iCal DTEND is
     // exclusive (matches our overnight loop with cursor < end) so we expand
     // each block range and stamp the days as confirmed overnight bookings.
-    const monthStart = new Date(currentYear, currentMonth, 1);
-    const monthEnd = new Date(currentYear, currentMonth + 1, 0);
+    // (monthStart / monthEnd are computed once above and reused here.)
     for (const blk of externalBlocks) {
       if (!blk.start) continue;
       const start = new Date(blk.start);
