@@ -9,6 +9,7 @@ import {
   query,
   orderBy,
   where,
+  onSnapshot,
 } from 'firebase/firestore';
 import {
   signInWithEmailAndPassword,
@@ -501,6 +502,25 @@ export const firestoreBookings = {
     const q = query(bookingsCol(), orderBy('created_at', 'desc'));
     const snap = await getDocs(q);
     return snap.docs.map(d => ({ id: d.id, ...d.data() } as FirestoreBooking));
+  },
+
+  /**
+   * Realtime subscription over EVERY booking doc — online and manual/walk-in
+   * alike. Deliberately unfiltered (no source / payment_status / status WHERE
+   * clause) so the client calendar treats a manually-entered booking as a hard
+   * block the instant the admin saves it, with no page refresh. Callers apply
+   * their own availability rules (e.g. skip cancelled). Returns an unsubscribe.
+   */
+  subscribeRaw(
+    onChange: (docs: FirestoreBooking[]) => void,
+    onError?: (err: Error) => void,
+  ): () => void {
+    const q = query(bookingsCol(), orderBy('created_at', 'desc'));
+    return onSnapshot(
+      q,
+      snap => onChange(snap.docs.map(d => ({ id: d.id, ...d.data() } as FirestoreBooking))),
+      err => onError?.(err),
+    );
   },
 
   async get(id: string): Promise<FirestoreBooking | null> {

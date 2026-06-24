@@ -117,9 +117,9 @@ export const Layout: React.FC = () => {
   const drawerX = isRTL ? 280 : -280;
 
   return (
-    <div className="min-h-[100dvh] flex flex-col md:flex-row">
-      {/* Sidebar for Desktop */}
-      <aside className="hidden md:flex flex-col w-64 bg-primary-navy text-white h-screen sticky top-0 py-8 px-6">
+    <div className="h-[100dvh] overflow-hidden flex flex-col md:flex-row">
+      {/* Sidebar for Desktop — locked to full viewport height, never scrolls */}
+      <aside className="hidden md:flex flex-col w-64 shrink-0 bg-primary-navy text-white h-full py-8 px-6">
         <Link to="/" className="block mb-10 group">
           <BrandMark variant="dark" size="md" className="group-hover:text-secondary-gold transition-colors" />
           <p className="text-[10px] font-lato uppercase tracking-widest text-white/50 font-bold mt-1">{t('nav.managementPortal')}</p>
@@ -248,8 +248,8 @@ export const Layout: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0">
+      {/* Main Content Area — the only vertical scroll container */}
+      <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
         {/* Top Bar */}
         <header className="sticky top-0 z-40 bg-pearl-white/80 backdrop-blur-xl border-b border-primary-navy/5 h-16 flex items-center justify-between px-6 md:px-8">
           <div className="flex items-center gap-4">
